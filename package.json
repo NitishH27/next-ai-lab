@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test lib/auth.spec.mts"
   },
   "dependencies": {
+    "lottie-react": "^3.1.2",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
