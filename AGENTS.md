@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Before You Start
+
+Always read this file (the repository rules) before making any changes to code.
+
 ## Project Structure
 
 This repository is a small Next.js App Router application. Keep route and layout code in `app/` (`page.tsx`, `layout.tsx`, and shared styles in `globals.css`). Static assets belong in `public/`. There is currently no test directory or test framework; add tests alongside new features or in a clearly named test folder when a framework is introduced.

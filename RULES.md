@@ -6,11 +6,18 @@ Follow these rules when changing this application:
 
 - For every new change or update, Codex must use the ponytail skill at `C:\Users\Nitish\.agents\skills\ponytail\SKILL.md` and follow its current instructions.
 - For feature work, use `PRD.md` for requirements and `TASKS.md` for the implementation backlog. Decompose ready requirements into linked tasks before implementation, and keep task and requirement statuses current.
+- When the `grill-me` skill is used to review a requirement, plan, or design, make sure the linked task exists under **To Do** in `TASKS.md` before the interview starts. Never run a grilling without a task recording it.
+- When the grilling resolves the requirement's open questions, move that task to **Ready for Code**. It is unblocked and specified, but no code has been written yet.
+- When implementation starts on a ready task, move it to **In Progress**.
+- When the implementation is complete and the quality checks in this file pass, move the task to **Done**.
+- If a grilling produces several implementation tasks, update every affected task's status in the same pass so `TASKS.md` never lags behind the work.
 
 ## Framework and Structure
 
 - Before changing app code or creating a component, read `ARCHITECTURE.md` and follow its structure and conventions. Update it when a lasting architectural change is made.
 - Before implementing a new component or modifying an existing component, always check `SYSTEM_DESIGN.md` and follow its visual and interaction standards to keep the UI consistent. Update the design guide when intentionally changing a shared standard.
+- For every new or changed component, use the `better-ui` skill and apply its exact values for alignment, geometry, radius, spacing, shadows, icon stroke, and motion. Polish never overrides a broken interaction.
+- For every icon in the app, use the `suggest-lucide-icons` skill to confirm a real Lucide icon name before adding it. Never invent an icon name or mix icon libraries on one surface; `lucide-react` is the app’s icon source.
 - Use the installed Next.js 16 App Router conventions. Before changing app code, consult the relevant guide in `node_modules/next/dist/docs/`.
 - Put routes and layouts in `app/`; keep shared global styles in `app/globals.css` and static files in `public/`.
 - Prefer React Server Components. Add `"use client"` only when a component needs browser APIs, state, effects, or event handlers.

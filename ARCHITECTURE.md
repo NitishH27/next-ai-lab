@@ -12,8 +12,10 @@ next-ai-lab/
 │   ├── layout.tsx       # Root HTML shell and shared layout
 │   ├── globals.css      # Global styles
 │   └── favicon.ico      # Application icon
-├── components/auth/     # Reusable auth layouts, controls, forms, and route guard
-├── lib/                 # Shared auth validation and mock-session helpers
+├── components/
+│   ├── auth/            # Reusable auth layouts, controls, forms, and route guard
+│   └── dashboard/       # Dashboard summary widgets
+├── lib/                 # Shared auth validation, mock session, and application summaries
 ├── public/              # Static assets served from the site root
 │   └── animations/      # Local Lottie animation assets
 ├── AGENTS.md            # Contributor guide
@@ -33,6 +35,7 @@ next-ai-lab/
 - Keep the root layout and global CSS in `app/layout.tsx` and `app/globals.css`.
 - As the app grows, group reusable UI in `components/`, shared helpers in `lib/`, and shared TypeScript definitions in `types/`. Create these folders only when there is code to put in them.
 - Keep reusable authentication UI in `components/auth/` and browser-only session behavior in `lib/auth.ts`. The current session is a `sessionStorage` prototype marker, not a production authorization boundary.
+- Keep dashboard summary widgets in `components/dashboard/` and application types, sample records, and the summary helper in `lib/applications.ts`. Widgets read the summary object only; they do not recount statuses.
 - Store images, icons, and other files that should be served as-is in `public/`; reference them by root-relative URL paths.
 - Keep server-only integrations and secrets out of client components. Read configuration from environment variables and never commit secret values.
 - Prefer Server Components. Mark a component with `"use client"` only when it needs browser APIs, state, effects, or interactive event handlers.
