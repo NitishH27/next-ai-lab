@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getApplications,
+  getWeeklyApplicationCounts,
   summarizeApplications,
   type Application,
   type ApplicationStatus,
@@ -11,6 +13,19 @@ const DAY_MS = 86_400_000;
 
 function application(status: ApplicationStatus, daysAgo = 1, id = "app"): Application {
   const appliedAt = new Date(NOW.getTime() - daysAgo * DAY_MS).toISOString();
+
+  return {
+    id,
+    company: "Sample Co",
+    role: "Engineer",
+    appliedAt,
+    status,
+    statusChangedAt: appliedAt,
+  };
+}
+
+function applicationAt(status: ApplicationStatus, msAgo: number, id = "app"): Application {
+  const appliedAt = new Date(NOW.getTime() - msAgo).toISOString();
 
   return {
     id,
@@ -131,4 +146,86 @@ test("stale flagging ignores non-applied statuses", () => {
   );
 
   assert.equal(summary.stale, 0);
+});
+
+test("weekly counts return twelve ordered buckets ending today", () => {
+  const weeks = getWeeklyApplicationCounts([], NOW);
+
+  assert.equal(weeks.length, 12);
+  assert.equal(weeks[0].weekStart, new Date(NOW.getTime() - 84 * DAY_MS).toISOString());
+  assert.equal(weeks[11].weekStart, new Date(NOW.getTime() - 7 * DAY_MS).toISOString());
+  assert.match(weeks[0].label, /^[A-Z][a-z]{2} \d{1,2}$/);
+  assert.ok(
+    weeks.every((week) => week.applied === 0 && week.rejected === 0 && week.interview === 0),
+  );
+});
+
+test("weekly counts bucket by trailing seven-day windows", () => {
+  const weeks = getWeeklyApplicationCounts(
+    [
+      applicationAt("applied", 0, "now"),
+      applicationAt("rejected", 7 * DAY_MS - 1, "inside-current"),
+      applicationAt("interview", 7 * DAY_MS, "boundary"),
+      applicationAt("applied", 84 * DAY_MS - 1, "oldest"),
+      applicationAt("rejected", 84 * DAY_MS, "too-old"),
+    ],
+    NOW,
+  );
+
+  assert.equal(weeks[11].applied, 1);
+  assert.equal(weeks[11].rejected, 1);
+  assert.equal(weeks[10].interview, 1);
+  assert.equal(weeks[0].applied, 1);
+  assert.equal(
+    weeks.reduce((total, week) => total + week.applied + week.rejected + week.interview, 0),
+    4,
+  );
+});
+
+test("weekly counts ignore future applications", () => {
+  const weeks = getWeeklyApplicationCounts(
+    [applicationAt("applied", 0, "now"), applicationAt("rejected", -DAY_MS, "future")],
+    NOW,
+  );
+
+  assert.equal(
+    weeks.reduce((total, week) => total + week.applied + week.rejected + week.interview, 0),
+    1,
+  );
+});
+
+test("weekly counts aggregate several applications per status in one week", () => {
+  const weeks = getWeeklyApplicationCounts(
+    [
+      applicationAt("applied", 1 * DAY_MS, "a"),
+      applicationAt("applied", 2 * DAY_MS, "b"),
+      applicationAt("rejected", 3 * DAY_MS, "c"),
+      applicationAt("interview", 6 * DAY_MS, "d"),
+    ],
+    NOW,
+  );
+
+  assert.equal(weeks[11].applied, 2);
+  assert.equal(weeks[11].rejected, 1);
+  assert.equal(weeks[11].interview, 1);
+});
+
+test("the sample records span the trend window", () => {
+  const applications = getApplications();
+  const now = new Date();
+  const weeks = getWeeklyApplicationCounts(applications, now);
+
+  assert.equal(weeks.length, 12);
+  assert.deepEqual(
+    weeks.map((week) => week.applied),
+    [1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0],
+  );
+  assert.deepEqual(
+    weeks.map((week) => week.rejected),
+    [0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
+  );
+  assert.deepEqual(
+    weeks.map((week) => week.interview),
+    [0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0],
+  );
 });

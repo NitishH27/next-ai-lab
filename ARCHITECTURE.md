@@ -5,19 +5,23 @@
 ```text
 next-ai-lab/
 ├── app/                 # App Router routes, layouts, and global styles
+│   ├── (workspace)/     # URL-transparent signed-in route group
+│   │   ├── layout.tsx   # Shared auth guard, sidebar shell, and page header
+│   │   └── dashboard/page.tsx # Dashboard route
 │   ├── page.tsx         # Routes / to login or dashboard
 │   ├── login/page.tsx   # Login route
 │   ├── signup/page.tsx  # Signup route
-│   ├── dashboard/page.tsx # Dashboard route
 │   ├── layout.tsx       # Root HTML shell and shared layout
 │   ├── globals.css      # Global styles
 │   └── favicon.ico      # Application icon
 ├── components/
 │   ├── auth/            # Reusable auth layouts, controls, forms, and route guard
-│   └── dashboard/       # Dashboard summary widgets
-├── lib/                 # Shared auth validation, mock session, and application summaries
+│   ├── dashboard/       # Dashboard summary widgets and trend chart
+│   └── layout/          # Signed-in workspace shell and sidebar
+├── lib/                 # Shared auth, application, navigation, summary, and trend helpers
 ├── public/              # Static assets served from the site root
-│   └── animations/      # Local Lottie animation assets
+│   ├── animations/      # Local Lottie animation assets
+│   └── images/          # Expanded and collapsed JobFlow logo marks
 ├── AGENTS.md            # Contributor guide
 ├── RULES.md             # Development rules
 ├── SYSTEM_DESIGN.md     # Shared UI and visual design standards
@@ -35,8 +39,11 @@ next-ai-lab/
 - Keep the root layout and global CSS in `app/layout.tsx` and `app/globals.css`.
 - As the app grows, group reusable UI in `components/`, shared helpers in `lib/`, and shared TypeScript definitions in `types/`. Create these folders only when there is code to put in them.
 - Keep reusable authentication UI in `components/auth/` and browser-only session behavior in `lib/auth.ts`. The current session is a `sessionStorage` prototype marker, not a production authorization boundary.
-- Keep dashboard summary widgets in `components/dashboard/` and application types, sample records, and the summary helper in `lib/applications.ts`. Widgets read the summary object only; they do not recount statuses.
-- Store images, icons, and other files that should be served as-is in `public/`; reference them by root-relative URL paths.
+- Put every signed-in page under the `app/(workspace)/` route group so it inherits the shared `AuthRoute` guard and `WorkspaceShell`. Keep `/login`, `/signup`, and the root `/` redirect outside the group because they are full-screen pre-authentication screens.
+- Keep the workspace frame in `components/layout/WorkspaceShell.tsx`; it owns the sidebar, page header, skip link, and `<main id="workspace-content">` region. Pages under the group render only their content. Keep the in-memory sidebar collapsed state in the shell so it survives route changes and resets on reload.
+- Keep workspace navigation records, page labels, titles, and descriptions in `lib/navigation.ts`; the sidebar and shell header must read that single source rather than maintaining duplicate maps.
+- Keep dashboard summary widgets and the applications trend chart in `components/dashboard/`, and application types, sample records, summary, and weekly trend helpers in `lib/applications.ts`. Widgets read the summary object only and the chart reads the weekly helper; neither recounts statuses. Use `recharts` as the single chart library for chart UI. The dashboard page remains client-side because its time-relative sample data and trend chart run in the client.
+- Store images, icons, and other files that should be served as-is in `public/`; reference them by root-relative URL paths. Use `expandedLogo.jpg` and `collapsedLogo.jpg` for the workspace brand tiles.
 - Keep server-only integrations and secrets out of client components. Read configuration from environment variables and never commit secret values.
 - Prefer Server Components. Mark a component with `"use client"` only when it needs browser APIs, state, effects, or interactive event handlers.
 - Use the configured `@/*` alias for imports from the repository root. Keep modules focused and avoid duplicating shared behavior.
