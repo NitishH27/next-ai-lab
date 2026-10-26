@@ -4,7 +4,29 @@ Use this file as the implementation backlog for requirements in `PRD.md`. Codex 
 
 ## To Do
 
-<!-- Add new implementation tasks here, including tasks under active grilling. -->
+- **PRD-004.0 — Grill and lock PRD-004 decisions:** Resolved auth (Better Auth + MongoDB adapter, shared cached MongoClient), tab-scoped HTTP-only DB sessions, `migrate-mongo` for indexes, Vercel (Asia Pacific), email verification required, no demo data, separate tracker UI, Google sign-in disabled. Updated PRD-004 to reflect decisions and moved to Ready for Code.
+
+- **PRD-004.1 — Environment and DB foundation:** Add `lib/env.ts` with Zod/env validation (fail-fast on missing `MONGODB_URI`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, optional `MONGODB_DB`), create `.env.example` with placeholders, add `lib/db/client.ts` (cached MongoClient per process, reuse with adapter), `lib/db/connect.ts`, `lib/db/collections.ts`, `lib/db/types.ts`. Mark server-only modules. Document env setup in `README.md`.
+
+- **PRD-004.2 — Migrations (migrate-mongo):** Set up `migrate-mongo` config, create initial migration for required indexes (unique `users.email`, unique `sessions.token`, `sessions.userId`/`sessions.expiresAt` with TTL, applications `{ userId: 1, appliedAt: -1, _id: -1 }` and `{ userId: 1, status: 1 }`). Add npm scripts for migrate up/down, make migrations idempotent. Document commands.
+
+- **PRD-004.3 — Better Auth setup (email+password + email verification + tab-scoped DB sessions):** Configure Better Auth with `@better-auth/mongo-adapter` using shared cached MongoClient. Enable email+password with verification required. Configure tab-scoped sessions (HTTP-only, Secure in prod, SameSite=Lax, Path=/, no Max-Age/Expires). Set trusted origins for dev and Vercel. Add generic login error and field-specific duplicate-email error mapping. Add API route `app/api/auth/[...all]/route.ts`. Create `lib/auth/config.ts`, `lib/auth/server.ts` (use `auth.api.getSession({ headers: await headers() })`), `lib/auth/client.ts`.
+
+- **PRD-004.4 — Auth UI updates (verification flow):** Update signup/login flows to support email verification (inform user to verify email before signing in). Keep validation rules (valid email, >=8 char password, matching confirm). Ensure duplicate email shows field-specific error, login failures show generic message. Keep Google button disabled. Update route behavior for unverified users per Better Auth config.
+
+- **PRD-004.5 — Server session guard & route cutover:** Replace `AuthRoute`/`sessionStorage` with server-side session checks in workspace layout using `auth.api.getSession`. Add/adjust `proxy.ts` for early redirects if needed but do not rely on it for authz. Update redirects: signed-out -> `/login`, signed-in from `/login`/`/signup` -> `/dashboard`, root unchanged. Remove mock session helpers (`lib/auth.ts` mock session code) and update affected specs.
+
+- **PRD-004.6 — Workspace header account area + sign-out:** Add signed-in account display (name/email) and keyboard-operable sign-out control to workspace header (collapse to icon on narrow screens). Sign-out deletes server session, clears cookie, redirects to `/login`. Use `better-ui`, confirm icon via `suggest-lucide-icons` if needed.
+
+- **PRD-004.7 — Applications schema, validation, serialization, repo:** Create `lib/validators/applications.ts` (Zod: trim company/role max 200, valid not-future date, status enum). Create `lib/utils/serialization.ts` (ObjectId->string, Date->ISO). Create server-only repo `lib/repositories/applications.ts` enforcing per-user isolation (`{_id,userId}` filters), deriving userId from session only, rejecting invalid ObjectId as 404, not-found/other-user as 404. Handle statusChangedAt logic (set on create/default, update only on status change).
+
+- **PRD-004.8 — Applications API routes:** Add authenticated routes under `app/api/applications/` (GET list, POST create, GET/PATCH/DELETE `[id]`). Enforce auth (401), validation (400), not found/forbidden cross-user as 404. List newest by `appliedAt` desc with `_id` tie-breaker. Return serialized data. Make routes dynamic/non-cacheable.
+
+- **PRD-004.9 — Dashboard cutover to per-user data:** Replace `getApplications()` usage with server-side read of signed-in user's applications in dashboard (can be Server Component). Remove sample-data notice. Keep `summarizeApplications()` and `getWeeklyApplicationCounts()` unchanged. New accounts see empty state. Ensure no shared caching of authenticated/per-user responses.
+
+- **PRD-004.10 — Security, rate limiting, and hardening:** Configure Better Auth rate limiting for login/signup with 429 + Retry-After, document in-memory limitation. Ensure trusted origins, CSRF/origin checks. Return generic errors (no MongoDB details/stack/secrets), log with context without sensitive data. Add `server-only` imports where appropriate. Verify no secrets in client bundle.
+
+- **PRD-004.11 — Tests (unit + integration) and docs:** Add unit tests for validation, serialization, summary/trend helpers. Add integration tests (signup+verification flow, duplicate email, login success/failure/unverified, tab-scoped session behavior, sign-out, unauthenticated, CRUD + isolation, invalid ObjectId, date serialization). Update route guard tests for server session. Update `ARCHITECTURE.md`, `README.md`, `CHANGLOG.md`. Run `npm test`, `npm run lint`, `npm run build`.
 
 ## Ready for Code
 
