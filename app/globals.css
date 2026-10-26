@@ -267,8 +267,13 @@ input:focus-visible {
 }
 
 .workspace-header {
+  position: sticky;
+  z-index: 20;
+  inset-block-start: 0;
   padding-block: 1rem;
   border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(12px);
 }
 
 .workspace-header-inner,

@@ -161,3 +161,36 @@ This file records repository changes made by Codex, with a dated title and a bri
 - Implemented the fluid `clamp()` sidebar, 200ms column transition, 150ms token-color transitions, 2px focus rings, 0.96 press scale, hover-only styles, RTL logical layout and icon mirroring, and reduced-motion overrides.
 - Replaced the dashboard's fixed card breakpoints with content-area container queries and a 9rem content-box breakdown threshold; verified the 1280×800 five-card row, 320px stacking, keyboard focus/tooltips, RTL geometry, reduced motion, and token contrast.
 - Kept component DOM specs deferred under the PRD-002/PRD-003 exception; `npm test`, `npm run lint`, and `npm run build` pass.
+
+## 2026-10-26 — Make the Workspace Header Sticky
+
+- Made the shared workspace page header sticky at the top of the content column, so the page title and description stay visible while dashboard content scrolls underneath.
+- Styled the sticky surface with the sidebar's `surface` token at 90% opacity plus a 12px backdrop blur, keeping the existing `border` divider and `text` heading color.
+- Verified `npm run lint` and `npm run build`; no component or navigation behavior changed.
+
+## 2026-10-26 — Require a Changelog Entry for Every Prompt
+
+- Added an Agent Workflow rule to `RULES.md` requiring a dated `CHANGLOG.md` entry for every prompt that changes the project, including small style, documentation, and rule updates.
+- Documentation-only change; no application behavior or build output changed.
+
+## 2026-10-26 — Add PRD-004 Backend Foundation Requirement
+
+- Added proposed `PRD-004` for real accounts and per-user application persistence: a managed database and email/password authentication, server-side session guards, HTTP-only cookies, application CRUD endpoints, repository-level isolation, validation, rate limiting, and dashboard cutover from sample data.
+- Recorded the compatibility impact: PRD-001's tab-scoped `sessionStorage` session and PRD-002's shared sample records are replaced, while the six statuses, KPI formulas, stale rule, and chart behavior stay unchanged.
+- Listed open decisions for the session lifetime, email verification, tracker UI scope, demo data, deployment target, and Google sign-in. No implementation tasks were added until those questions are resolved.
+- Documentation-only change; no runtime or build output changed.
+
+## 2026-10-26 — Set MongoDB Atlas as the PRD-004 Database
+
+- Updated `PRD-004` to make MongoDB Atlas mandatory and the native `mongodb` driver the single data-access client, replacing the previous PostgreSQL/Supabase baseline.
+- Recommended Better Auth with `@better-auth/mongo-adapter` and database sessions, and documented the `users`, `sessions`, `accounts`, and `applications` collections, ObjectId/Date serialization, index and migration requirements, connection caching, Atlas network access, and production backups.
+- Replaced row-level security with a mandatory server-only repository scope because MongoDB has no RLS, and added cross-user isolation, malformed ObjectId, BSON mapping, and Atlas test-database coverage to the acceptance criteria.
+- MongoDB Atlas is now fixed; the auth layer, Atlas topology/region, session lifetime, email verification, tracker UI, demo data, deployment target, and Google sign-in remain open questions.
+- Documentation-only change; no runtime or build output changed.
+
+## 2026-10-26 — Confirm Cluster-Based MongoDB Atlas
+
+- Clarified `PRD-004` that MongoDB Atlas must be a standard cluster-based deployment (replica set or sharded cluster) reached through its `mongodb+srv://` connection string, not a local-only or non-cluster database.
+- Noted that the cluster's transaction support is available to the shared auth adapter, and that production uses a paid Atlas cluster tier with backups.
+- Added an acceptance criterion for connecting to the configured Atlas cluster and narrowed the remaining infrastructure question from Atlas topology to cluster tier, region, and database names.
+- Documentation-only change; no runtime or build output changed.

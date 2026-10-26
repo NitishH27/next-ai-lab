@@ -11,6 +11,7 @@ Follow these rules when changing this application:
 - When implementation starts on a ready task, move it to **In Progress**.
 - When the implementation is complete and the quality checks in this file pass, move the task to **Done**.
 - If a grilling produces several implementation tasks, update every affected task's status in the same pass so `TASKS.md` never lags behind the work.
+- For every prompt that changes the project, add a dated entry to `CHANGLOG.md` with a brief summary of the change and the validation performed. Never leave a project change unrecorded, including small style, documentation, or rule updates.
 
 ## Framework and Structure
 
