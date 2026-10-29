@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   useState,
   useSyncExternalStore,
@@ -12,11 +12,13 @@ import {
 } from "react";
 import {
   LayoutDashboard,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import { findWorkspacePage, workspacePages } from "@/lib/navigation";
+import { authClient } from "@/lib/auth/client";
 
 const compactQuery = "(max-width: 47.99rem)";
 
@@ -58,8 +60,14 @@ function getTooltipPosition(element: HTMLElement, label: string): NavTooltip {
   };
 }
 
-export default function WorkspaceShell({ children }: { children: ReactNode }) {
+type WorkspaceShellProps = {
+  children: ReactNode;
+  session?: { user?: { name?: string | null; email?: string | null } } | null;
+};
+
+export default function WorkspaceShell({ children, session }: WorkspaceShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [navTooltip, setNavTooltip] = useState<NavTooltip | null>(null);
   const isCompactViewport = useSyncExternalStore(
@@ -71,9 +79,21 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const page = findWorkspacePage(pathname);
   const title = page?.title ?? "JobFlow";
 
+  const user = session?.user;
+  const userLabel = user?.name || user?.email || "Account";
+
   function toggleSidebar() {
     setNavTooltip(null);
     setSidebarCollapsed((collapsed) => !collapsed);
+  }
+
+  async function handleSignOut() {
+    try {
+      await (authClient as { signOut: () => Promise<unknown> }).signOut();
+    } catch {
+      // ignore
+    }
+    router.replace("/login");
   }
 
   function showNavTooltip(
@@ -148,8 +168,27 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             })}
           </ul>
         </nav>
-        {!isCompactViewport && (
-          <div className="workspace-sidebar-footer">
+        <div className="workspace-sidebar-footer">
+          <button
+            type="button"
+            className="workspace-signout"
+            onClick={handleSignOut}
+            aria-label={isCollapsed ? "Sign out" : undefined}
+            title={isCollapsed ? "Sign out" : undefined}
+          >
+            <LogOut size={20} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+            {isCollapsed ? (
+              <span className="workspace-flyout workspace-collapse-flyout" aria-hidden="true">
+                Sign out
+              </span>
+            ) : (
+              <span className="workspace-signout-label">
+                <span className="workspace-signout-user">{userLabel}</span>
+                <span className="workspace-signout-text">Sign out</span>
+              </span>
+            )}
+          </button>
+          {!isCompactViewport && (
             <button
               type="button"
               className="workspace-collapse"
@@ -181,8 +220,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
                 <span className="workspace-collapse-label">Collapse sidebar</span>
               )}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </aside>
       <div className="workspace-main">
         <header className="workspace-header">

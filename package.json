@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/auth.spec.mts lib/applications.spec.mts lib/navigation.spec.mts"
+    "test": "node --test lib/auth.spec.mts lib/applications.spec.mts lib/navigation.spec.mts",
+    "migrate:up": "migrate-mongo up",
+    "migrate:down": "migrate-mongo down"
   },
   "dependencies": {
+    "@better-auth/mongo-adapter": "^1.7.13",
+    "better-auth": "^1.7.13",
     "lottie-react": "^3.1.2",
     "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",
@@ -25,6 +29,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "migrate-mongo": "^14.0.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

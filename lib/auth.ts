@@ -1,5 +1,3 @@
-export const AUTH_SESSION_KEY = "jobflow.mock-authenticated";
-
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type FieldErrors = Record<string, string>;
@@ -41,10 +39,3 @@ export function validateSignup(
   return errors;
 }
 
-export function isMockAuthenticated() {
-  return typeof window !== "undefined" && sessionStorage.getItem(AUTH_SESSION_KEY) === "true";
-}
-
-export function startMockSession() {
-  sessionStorage.setItem(AUTH_SESSION_KEY, "true");
-}

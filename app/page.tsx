@@ -1,15 +1,12 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/server";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { isMockAuthenticated } from "@/lib/auth";
+export default async function Home() {
+  const session = await getSession();
 
-export default function Home() {
-  const router = useRouter();
+  if (session?.user) {
+    redirect("/dashboard");
+  }
 
-  useEffect(() => {
-    router.replace(isMockAuthenticated() ? "/dashboard" : "/login");
-  }, [router]);
-
-  return <main className="route-loading" aria-live="polite">Loading JobFlow…</main>;
+  redirect("/login");
 }
