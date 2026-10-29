@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:check": "node scripts/check-db.mjs",
-    "test": "node --test lib/auth.spec.mts lib/applications.spec.mts lib/navigation.spec.mts",
+    "test": "node --test lib/auth.spec.mts lib/auth/email.spec.mts lib/applications.spec.mts lib/navigation.spec.mts lib/db/migrations.spec.mts lib/validators/applications.spec.mts",
     "migrate:up": "migrate-mongo up",
     "migrate:down": "migrate-mongo down"
   },
@@ -21,7 +21,8 @@
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

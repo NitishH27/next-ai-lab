@@ -8,6 +8,7 @@ export type DbUser = {
   name: string;
   email: string;
   emailVerified: boolean;
+  image?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -17,6 +18,8 @@ export type DbSession = {
   token: string;
   userId: ObjectId;
   expiresAt: Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -27,6 +30,12 @@ export type DbAccount = {
   accountId: string;
   providerId: string;
   password?: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  idToken?: string | null;
+  accessTokenExpiresAt?: Date | null;
+  refreshTokenExpiresAt?: Date | null;
+  scope?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

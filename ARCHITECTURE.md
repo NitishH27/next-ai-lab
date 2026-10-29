@@ -18,7 +18,11 @@ next-ai-lab/
 │   ├── auth/            # Reusable auth layouts, controls, forms, and route guard
 │   ├── dashboard/       # Dashboard summary widgets and trend chart
 │   └── layout/          # Signed-in workspace shell and sidebar
-├── lib/                 # Shared auth, application, navigation, summary, and trend helpers
+├── lib/                 # Shared auth, application, database, navigation, summary, and trend helpers
+│   ├── db/              # Cached MongoClient, database accessors, stored document types
+│   └── validators/      # Server-side input guards shared by repositories and routes
+├── migrations/          # migrate-mongo index migrations; never edit an applied migration
+├── scripts/             # Operational checks such as the Atlas connectivity check
 ├── public/              # Static assets served from the site root
 │   ├── animations/      # Local Lottie animation assets
 │   └── images/          # Expanded and collapsed JobFlow logo marks
@@ -45,6 +49,7 @@ next-ai-lab/
 - Keep dashboard summary widgets and the applications trend chart in `components/dashboard/`, and application types, sample records, summary, and weekly trend helpers in `lib/applications.ts`. Widgets read the summary object only and the chart reads the weekly helper; neither recounts statuses. Use `recharts` as the single chart library for chart UI. The dashboard page remains client-side because its time-relative sample data and trend chart run in the client.
 - Store images, icons, and other files that should be served as-is in `public/`; reference them by root-relative URL paths. Use `expandedLogo.jpg` and `collapsedLogo.jpg` for the workspace brand tiles.
 - Keep server-only integrations and secrets out of client components. Read configuration from environment variables and never commit secret values.
+- Keep MongoDB access in `lib/db/`: one cached `MongoClient` per process, explicit collection names, and the five domain collections plus `migrate-mongo`'s `changelog`. Use environment-suffixed database names (`jobflow_dev`, `jobflow_test`, `jobflow_preview`, `jobflow_prod`). Create indexes through `migrations/`, never ad hoc Atlas UI edits; do not rewrite an applied migration. The server-only repository is the ownership boundary and must reject future application dates instead of clamping them.
 - Prefer Server Components. Mark a component with `"use client"` only when it needs browser APIs, state, effects, or interactive event handlers.
 - Use the configured `@/*` alias for imports from the repository root. Keep modules focused and avoid duplicating shared behavior.
 

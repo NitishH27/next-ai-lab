@@ -4,25 +4,41 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import PasswordField from "@/components/auth/PasswordField";
-import { startMockSession, validateLogin, type FieldErrors } from "@/lib/auth";
+import { validateLogin, type FieldErrors } from "@/lib/auth";
+import { authClient } from "@/lib/auth/client";
 
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const validationErrors = validateLogin(email, password);
     setErrors(validationErrors);
+    setFormError(null);
 
     if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
-    startMockSession();
-    router.replace("/dashboard");
+    try {
+      const res = await authClient.signIn.email({
+        email: email.trim(),
+        password,
+      });
+
+      if (res?.error) {
+        setFormError("Invalid email or password.");
+        return;
+      }
+
+      router.replace("/dashboard");
+    } catch (e) {
+      setFormError("Invalid email or password.");
+    }
   }
 
   return (
@@ -55,6 +71,7 @@ export default function LoginForm() {
           error={errors.password}
           autoComplete="current-password"
         />
+        {formError ? <p className="field-error" role="alert">{formError}</p> : null}
         <button className="button button-primary" type="submit">Login</button>
         <div className="form-divider"><span>or</span></div>
         <button className="button button-google" type="button" disabled title="Google sign-in is coming soon">

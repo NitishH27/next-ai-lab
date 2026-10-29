@@ -2,17 +2,19 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { MongoClient } from "mongodb";
 
-const envPath = resolve(process.cwd(), ".env.local");
-if (existsSync(envPath)) {
-  if (typeof process.loadEnvFile === "function") {
-    process.loadEnvFile(envPath);
-  } else {
-    console.warn("Node.js 20.12+ is required to load .env.local automatically.");
+for (const file of [".env.local", ".env"]) {
+  const envPath = resolve(process.cwd(), file);
+  if (existsSync(envPath)) {
+    if (typeof process.loadEnvFile === "function") {
+      process.loadEnvFile(envPath);
+    } else {
+      console.warn("Node.js 20.12+ is required to load .env files automatically.");
+    }
   }
 }
 
 const uri = process.env.MONGODB_URI;
-const dbName = process.env.MONGODB_DB || "jobflow";
+const dbName = process.env.MONGODB_DB || "jobflow_dev";
 const username = process.env.MONGODB_USER;
 const password = process.env.MONGODB_PASSWORD;
 

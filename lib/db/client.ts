@@ -15,30 +15,49 @@ const uri = MONGODB_URI;
 
 // Pass credentials separately so characters such as @ in the password are not
 // parsed as part of the connection string.
-const clientOptions: MongoClientOptions =
-  MONGODB_USER && MONGODB_PASSWORD
+const clientOptions: MongoClientOptions = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  ...(MONGODB_USER && MONGODB_PASSWORD
     ? {
         auth: { username: MONGODB_USER, password: MONGODB_PASSWORD },
         authSource: 'admin',
       }
-    : {};
+    : {}),
+};
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+let clientPromise: Promise<MongoClient> | undefined;
 
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, clientOptions);
-    global._mongoClientPromise = client.connect();
+function getClientPromise(): Promise<MongoClient> {
+  if (clientPromise) {
+    return clientPromise;
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, clientOptions);
-  clientPromise = client.connect();
-}
 
-export async function getMongoClient(): Promise<MongoClient> {
+  if (process.env.NEXT_PHASE === 'phase-production-build' && (!uri || (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')))) {
+    clientPromise = Promise.reject(new Error('MongoDB URI not configured'));
+    return clientPromise;
+  }
+
+  if (!uri || (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://'))) {
+    throw new Error('Invalid MongoDB URI');
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    if (!global._mongoClientPromise) {
+      const client = new MongoClient(uri, clientOptions);
+      global._mongoClientPromise = client.connect();
+    }
+    clientPromise = global._mongoClientPromise;
+  } else {
+    const client = new MongoClient(uri, clientOptions);
+    clientPromise = client.connect();
+  }
+
   return clientPromise;
 }
 
-export { clientPromise };
+export async function getMongoClient(): Promise<MongoClient> {
+  return getClientPromise();
+}
+
+export { getClientPromise as clientPromise };

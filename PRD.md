@@ -184,7 +184,7 @@ For each feature, add a section with:
 - **Status:** Ready for Code
 - **Problem and users:** JobFlow currently accepts any well-formed email and password, stores only a tab-scoped browser marker, and shows the same hardcoded sample applications to every user. Signed-in job seekers therefore have no real account, their session ends when the tab closes, and their application data neither exists on a server nor stays private. The project needs a server-side source of truth before the application tracker or any multi-user feature can be built.
 - **Compatibility note:** This requirement replaces PRD-001's `sessionStorage` mock session with real server-side authentication and replaces PRD-002's shared sample records with per-user persisted records. PRD-002's six statuses, counting formulas, stale rule, response-rate formula, and chart behavior remain unchanged. PRD-003's shell gains a signed-in account area and sign-out control.
-- **Database decision:** A cluster-based MongoDB Atlas deployment is the required database for this project. Use a standard Atlas cluster (replica set or sharded cluster) through its `mongodb+srv://` connection string in the Asia Pacific region (recommended `ap-south-1` or `ap-southeast-1`), deployed to be close to Vercel functions; do not substitute a local-only database, a non-cluster deployment, PostgreSQL, or SQLite. 
+- **Database decision:** A cluster-based MongoDB Atlas deployment is the required database for this project. Use a standard Atlas replica-set cluster through its `mongodb+srv://` connection string in `ap-south-1`, deployed to be close to Vercel functions in `bom1`; do not substitute a local-only database, a non-cluster deployment, PostgreSQL, or SQLite.
 - **Decisions locked in (from grilling):**
   - **Auth:** Better Auth with `@better-auth/mongo-adapter`. The adapter must reuse the single cached `MongoClient` per server process. Login failures return a generic `"Invalid email or password."`; duplicate signups (case-insensitive) return a field-specific error on the `email` field.
   - **Sessions:** Tab-scoped database sessions with HTTP-only cookies (no Max-Age/Expires; expire when browser/tab closes). Still use Better Auth database sessions for revocation on sign-out. Server-side validation via `auth.api.getSession` is mandatory.
@@ -192,18 +192,18 @@ For each feature, add a section with:
   - **Deployment:** Vercel (Asia Pacific). Production cookies require `Secure: true`, `SameSite: Lax`. 
   - **Email verification:** Required before account activation/sign-in.
   - **Demo data:** None - new accounts start empty with no demo records.
-  - **Tracker UI:** Separate (PRD-005). Google sign-in remains disabled.
+  - **Tracker UI:** Separate (PRD-006). Google sign-in remains disabled.
 - **Requirements:**
   - Use a cluster-based MongoDB Atlas deployment as the system of record and the official `mongodb` Node.js driver as the single data-access client. Do not add Mongoose or a second ODM alongside the native driver. Use one shared, cached `MongoClient` per server process and reuse the same client for the auth adapter so the Atlas cluster's transaction support is available.
   - Use Better Auth with `@better-auth/mongo-adapter` for email/password handling and database sessions. Configure it to use the shared cached `MongoClient`. Support email verification flow as required.
   - Keep every database credential and authentication secret server-only. Add the required variable names to a committed `.env.example` with placeholder values, including `MONGODB_URI`, the optional `MONGODB_DB`, `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL`. Document local setup in `README.md` and fail fast with a clear server error when a required variable is missing. Never commit real secrets or expose the connection string to client code.
-  - Create the Atlas database user with read/write access limited to the JobFlow database, never an Atlas admin account. Use the TLS `mongodb+srv://` connection string, keep developer and production databases separate, and restrict network access with the Atlas IP access list for development and VPC peering or PrivateLink where available in production. Production uses a paid Atlas cluster tier with automated backups and a documented restore check; a shared/free cluster is acceptable for development and demos only. Prefer cluster in Asia Pacific region close to Vercel.
+  - Create the Atlas database user with read/write access limited to the JobFlow database, never an Atlas admin account. Use the TLS `mongodb+srv://` connection string, keep developer and production databases separate, and restrict network access with the Atlas IP access list for development. Production uses `0.0.0.0/0` for v1 with a dedicated user, strong secret, TLS, and Atlas alerts until static egress or PrivateLink is available. Production uses a paid Atlas cluster tier with automated backups and a documented restore check; a shared/free cluster is acceptable for development and demos only. Use `ap-south-1` close to Vercel `bom1`.
   - Store auth data in Better Auth-managed MongoDB collections (`users`, `sessions`, `accounts`, and `verification` if required) with those collection names configured explicitly. The `users` document holds the normalized lowercase email and the user's full name; the auth adapter stores the password hash in the credential account document. Track email verification status.
   - Store applications in an `applications` collection with `_id` (ObjectId), `userId` (ObjectId), `company`, `role`, `appliedAt` (BSON Date), `status` (string), `statusChangedAt` (BSON Date), `createdAt` (BSON Date), and `updatedAt` (BSON Date). The status accepts only `applied`, `screening`, `interview`, `offer`, `rejected`, and `withdrawn`. Serialize `_id`, `userId`, and dates at the server boundary so client code receives string IDs and ISO date strings, never raw BSON or driver-specific types.
   - Add a repository-tracked index and migration workflow using `migrate-mongo` that can initialize an empty database with one documented command and is safe to run repeatedly. Create at least: a unique index on `users.email`; a unique index on `sessions.token`; indexes on `sessions.userId` and `sessions.expiresAt`, with a TTL policy on the expiry field; and application indexes on `{ userId: 1, appliedAt: -1, _id: -1 }` and `{ userId: 1, status: 1 }`. Do not create application indexes only through ad-hoc Atlas UI edits.
   - Keep signup and login on the existing screens and retain the current field validation: valid email format, password of at least 8 characters, and matching confirmation on signup. Signup requires email verification before the account can be used to sign in/access protected routes. Duplicate emails are rejected case-insensitively with a field-specific error. Password reset and Google sign-in remain out of scope for this requirement; keep the Google button disabled.
   - Let the authentication library hash and verify passwords with its supported algorithm. Never store or log plaintext passwords. Login failures return one generic invalid-email-or-password message so the response does not reveal whether an account exists or whether email is unverified. Signup may return a field-specific duplicate-email error so the user can correct it.
-  - Use database-backed tab-scoped sessions with HTTP-only cookies (`Secure: true` in production on Vercel, `SameSite: Lax`, `Path=/`, no Max-Age/Expires). Client JavaScript must not be able to read the session token. Sessions expire when the browser/tab closes. Rotate or regenerate on sign-in, and delete their server session document on sign-out. Invalid or expired sessions are treated as signed out.
+  - Use database-backed browser-session cookies with HTTP-only cookies (`Secure: true` in production on Vercel, `SameSite: Lax`, `Path=/`, no Max-Age/Expires). Client JavaScript must not be able to read the session token. The cookie is shared by tabs and normally clears when the browser session ends; the server session expires after 30 days. Rotate or regenerate on sign-in, and delete their server session document on sign-out. Invalid or expired sessions are treated as signed out.
   - Replace the client-side `AuthRoute`/`sessionStorage` decision with a server-side session check using the auth library's server API (e.g., `auth.api.getSession({ headers: await headers() })`) in the workspace layout or page. A `proxy.ts` redirect may run first for speed, but authorization must not rely only on the presence of a session cookie. Signed-out requests to workspace routes redirect to `/login` before the shell renders; signed-in requests to `/login` or `/signup` redirect to `/dashboard`. Keep the root `/` redirect behavior unchanged. Remove the mock session key and its helpers after the cutover.
   - Add a visible signed-in account area with the user's name or email and a keyboard-operable "Sign out" control in the workspace header. Signing out deletes the server session, clears the cookie, and redirects to `/login`. On narrow screens the control may collapse to an icon-only button with an accessible name. Use `better-ui` and confirm any new Lucide icon with `suggest-lucide-icons` before implementation.
   - Provide authenticated application persistence endpoints or equivalent server actions for list, create, update, and delete. List returns only the current user's records, newest `appliedAt` first with `_id` as a stable tie-breaker. Create defaults `status` to `applied` and sets `statusChangedAt` to `appliedAt`; changing status sets `statusChangedAt` to the change time. Updating company or role must not change either timestamp. Reject an invalid ObjectId as `404`, not as an unhandled server error.
@@ -211,18 +211,18 @@ For each feature, add a section with:
   - MongoDB has no row-level security, so enforce per-user isolation in one server-only repository layer. Derive `userId` from the validated session and never from a request body, query string, or header. Every read and mutation must include `userId` in its filter, for example `{ _id, userId }` for updates and deletes. Do not let route handlers or components query the `applications` collection directly. Automated tests must prove that changing an identifier cannot cross the user boundary.
   - Replace `getApplications()` sample data in the dashboard with a server-side read of the signed-in user's records. Remove the sample-data notice. Keep `summarizeApplications()` and `getWeeklyApplicationCounts()` unchanged so the KPI and chart formulas do not drift. The dashboard may become a Server Component with the existing chart as its client child. New accounts start with zero applications (no demo data) and see the existing empty state, with the chart empty message and no shared demo records.
   - Never cache authenticated or per-user responses in a shared cache. Configure the dashboard and API as dynamic where required by Next.js 16 Cache Components, and ensure a response for one user can never be served to another.
-  - Rely on the auth library's origin and CSRF checks, configure its trusted origins explicitly (including localhost for dev and Vercel deployment URLs), and keep `SameSite=Lax` on the session cookie with `Secure` in production. Rate-limit login and signup attempts with the auth library's limiter or an equivalent shared store, returning `429` with `Retry-After` when the limit is exceeded. Document that any in-memory limiter is per-instance and needs a shared store before horizontal scaling.
+  - Rely on the auth library's origin and CSRF checks, configure its trusted origins explicitly (including localhost for dev and Vercel deployment URLs), and keep `SameSite=Lax` on the session cookie with `Secure` in production. Rate-limit login and signup attempts with Better Auth's in-memory limiter for v1, returning `429` with `Retry-After` when the limit is exceeded. Document that the limiter is per-instance and move to a shared store before horizontal scaling.
   - Return generic server errors without MongoDB error details, stack traces, or secrets. Log server-side failures with request context but never log passwords, session tokens, or full application payloads.
-  - Add automated coverage for the new trust boundaries. Unit tests cover input validation, BSON-to-API mapping, and unchanged summary/trend helpers. Integration tests cover signup with email verification flow, duplicate email, login success and failure (including unverified email), session persistence (tab-scoped behavior), sign-out, unauthenticated access, application create/list/update/delete, invalid ObjectId handling, date serialization, and two-user isolation. Run integration tests against a dedicated Atlas test database or isolated database, never against production data.
+  - Add automated coverage for the new trust boundaries. Unit tests cover input validation, BSON-to-API mapping, and unchanged summary/trend helpers. Integration tests cover signup with email verification flow, duplicate email, login success and failure (including unverified email), session persistence (browser-session cookie behavior), sign-out, unauthenticated access, application create/list/update/delete, invalid ObjectId handling, date serialization, and two-user isolation. Run integration tests against a dedicated Atlas test database or isolated database, never against production data.
   - Document the Atlas cluster setup (Asia Pacific region), database user and network access, environment variables, index and migration commands using `migrate-mongo`, optional development seed command (not auto-run), and the new server/data boundaries in `ARCHITECTURE.md` and `README.md`. Record the cutover behavior: existing mock sessions are invalidated, and the hardcoded sample applications are not migrated because they were never user data.
   - Update the route guard tests and any existing specs that assume the mock session. Run `npm test`, `npm run lint`, and `npm run build` before marking the requirement complete.
-  - Out of scope for this requirement: the application tracker UI for adding, editing, and changing status; password reset; OAuth sign-in; account deletion; admin roles; audit history; attachments; notifications; and analytics beyond the existing dashboard. The API and persistence may support the tracker, but no tracker screen is required here (separate PRD-005). Google sign-in button remains disabled.
+  - Out of scope for this requirement: the application tracker UI for adding, editing, and changing status; password reset; OAuth sign-in; account deletion; admin roles; audit history; attachments; notifications; and analytics beyond the existing dashboard. The API and persistence may support the tracker, but no tracker screen is required here (separate PRD-006). Google sign-in button remains disabled.
 - **Acceptance criteria:**
   - A fresh checkout with a documented Atlas connection string and one migration command creates the required indexes, and the app fails fast with a clear message when a required environment variable is absent.
   - The running app connects through `MONGODB_URI` to the configured cluster-based Atlas deployment; no local MongoDB process or alternative database is required.
   - Signup with a valid name, email, password, and matching confirmation creates a real MongoDB user and credential record, signs the user in, and opens `/dashboard`; the stored password is not plaintext, and the same email with different casing is rejected as a duplicate.
   - Login with correct credentials creates a database-backed, HTTP-only session cookie and opens `/dashboard`. Login with an unknown email or wrong password shows one generic error and does not reveal whether the email exists.
-  - A valid session survives a page refresh and a browser restart. After 30 days, or after sign-out, the session document is rejected or deleted and protected routes redirect to `/login`.
+  - A valid session survives a page refresh in the same browser; closing one tab does not sign the user out, and closing the browser normally clears the session cookie (subject to browser session-restore behavior). After 30 days, or after sign-out, the session document is rejected or deleted and protected routes redirect to `/login`.
   - Signed-out workspace requests redirect to `/login` before the shell renders; signed-in requests to `/login` and `/signup` redirect to `/dashboard`. No `sessionStorage` mock marker is read or written, and the guard validates the session on the server rather than trusting cookie presence alone.
   - The workspace header shows the signed-in user's name or email and a keyboard-operable sign-out control; activating it clears the session and cookie and opens `/login`.
   - Two signed-in users can each create and list applications, and neither can read, update, or delete the other's records even when supplying the other record's identifier. Unauthorized cross-user access returns `404`, unauthenticated requests return `401`, and malformed ObjectIds do not crash the route.
@@ -235,9 +235,302 @@ For each feature, add a section with:
   - Cross-origin mutations without a valid trusted origin are rejected, and repeated failed login or signup attempts return `429` with `Retry-After`.
   - `npm test`, `npm run lint`, and `npm run build` pass, including new validation, mapping, and Atlas integration coverage.
   - `ARCHITECTURE.md`, `README.md`, `CHANGLOG.md`, and any affected specs describe the Atlas schema, indexes, server-only repository, session boundary, and migration workflow; `SYSTEM_DESIGN.md` is updated if the account area establishes a new shared UI pattern.
-- **Deliberate defaults:** A cluster-based MongoDB Atlas deployment (Asia Pacific) and the native MongoDB driver are mandatory. Better Auth with `@better-auth/mongo-adapter` and a shared cached MongoClient. Tab-scoped HTTP-only database sessions (expire on tab close). Email verification required before sign-in. New accounts start empty (no demo data). Migrations via `migrate-mongo`. Deployed on Vercel with Secure/Lax cookies in production. Tracker UI is separate (PRD-005). Google sign-in remains disabled.
-- **Open questions:**
-  - Which Atlas cluster topology (replica set or sharded), tier, specific Asia Pacific region (ap-south-1 vs ap-southeast-1), and database names for dev/test/prod? Production cookie settings, connection pooling, backups, and network access depend on this.
-  - Should email verification use a built-in email provider in Better Auth or integrate with an external provider (Resend/SendGrid/etc.)? Need to configure for dev/prod.
-  - Do we need a shared store for rate limiting before horizontal scaling on Vercel, or is in-memory acceptable for now with documentation?
-  - What trusted origins should be configured explicitly for dev and Vercel preview/prod URLs?
+- **Deliberate defaults:** A cluster-based MongoDB Atlas deployment (`ap-south-1` with Vercel `bom1`) and the native MongoDB driver are mandatory. Better Auth with `@better-auth/mongo-adapter` and a shared cached MongoClient. Browser-session HTTP-only database sessions with a 30-day server expiry (shared by tabs; normally cleared when the browser closes). Email verification required before sign-in. New accounts start empty (no demo data). Migrations via `migrate-mongo`. Deployed on Vercel with Secure/Lax cookies in production. Tracker UI is separate (PRD-006). Google sign-in remains disabled.
+- **Open questions:** None blocking auth implementation. Database details are locked in PRD-005. The only remaining deployment question is the exact production trusted origins for `BETTER_AUTH_URL` and Vercel preview URLs.
+
+### PRD-005 — Database Setup, Collections, and Schema
+
+- **Status:** Ready for Code
+- **Relationship to PRD-004:** PRD-004 mandates MongoDB Atlas and defines authentication and API behavior. This requirement is the database companion: it fixes the environment layout, the collection count, the field-level schema, the index set, and the operating decisions so implementation has one reference. It adds no product behavior beyond PRD-004. Where a database detail conflicts, this document wins. The tracker UI previously referenced as PRD-005 is renumbered PRD-006.
+- **Implementation ownership:** This requirement adds no separate code tasks. PRD-004.1 and PRD-004.2 own the database foundation and migrations; extend those tasks with the two missing indexes, the explicit collection names, and the future-date rejection.
+- **Decisions locked in (from grilling):**
+  - **Session:** HTTP-only browser-session cookie with no Max-Age, shared by tabs and normally cleared when the browser closes; 30-day server-side expiry. True per-tab isolation and a persistent “remember me” cookie are rejected for v1.
+  - **Email and verification:** Resend sends verification emails. A token is valid for 1 hour, and an unverified account cannot sign in or reach the workspace.
+  - **Account deletion:** Deferred for v1. There is no deletion UI, cascade, or retention job; a public launch must add a deletion and retention policy first.
+  - **Region and tier:** Atlas `ap-south-1` with Vercel `bom1`; production uses M10 or higher.
+  - **Network and backups:** Production uses `0.0.0.0/0` on the Atlas access list with a dedicated production user, strong secret, TLS, and alerts. Cloud Backup keeps 7 days of daily snapshots. Revisit static egress or PrivateLink when it is available.
+  - **Schema scope:** Five domain collections. `applications` stays minimal; `url`, `notes`, `salary`, `location`, and contact fields arrive with the tracker PRD. No status-history collection; the current-status trend is accepted.
+  - **Rate limiting:** Better Auth's in-memory limiter for v1. The per-instance limitation is documented, and no shared rate-limit collection is added.
+  - **Naming and access:** Environment-suffixed databases; one `readWrite` user per cluster boundary for both the app and `migrate-mongo`; no Atlas admin account.
+  - **Dates:** A future `appliedAt` is rejected with `400`, never clamped.
+- **Problem and users:** JobFlow needs real accounts and per-user applications, but the current schema exists only as scattered TypeScript types, an index migration, and prose in PRD-004. Without one database contract, collection names can drift from Better Auth's expectations, indexes get created by hand in the Atlas UI, dates and IDs leak BSON types to the browser, and a missing `userId` filter can expose another user's applications. Developers, migrations, tests, and future features all need the same answer for what is stored and why.
+- **Scope:** Atlas environment layout, collection inventory, field-level schema, relationships, indexes, validation boundaries, serialization, migration rules, retention, backups, and the decisions behind them.
+- **Out of scope:** Auth UI and API implementation (PRD-004), tracker UI (PRD-006), password reset, OAuth sign-in, account deletion, admin roles, attachments, notifications, analytics, status history, sharding, and a shared rate-limit store.
+
+**Direct answers**
+
+- **Database engine:** One engine only — MongoDB Atlas on a standard replica set. No SQL database, ORM, or second datastore is added in v1.
+- **Databases required:** Three core logical databases — `jobflow_dev`, `jobflow_test`, and `jobflow_prod` — plus `jobflow_preview` when Vercel preview deployments are enabled. Development, test, and preview share a free M0 cluster; production uses a separate M10-or-higher cluster. Atlas system databases (`admin`, `local`, `config`) are not application databases.
+- **Tables required:** MongoDB has collections, not tables. v1 needs **five domain collections**: `users`, `accounts`, `sessions`, `verification`, and `applications`. `migrate-mongo` adds one internal **`changelog`** collection, for **six collections total** in each database after migration.
+- **Schema style:** Document schema with explicit field names and types, reference-based relations through `userId`, and validation at the TypeScript, Zod, repository, and unique-index layers. No embedded application arrays, no SQL foreign keys, and no `$jsonSchema` collection validators in v1.
+
+#### Environment layout
+
+| Environment | Atlas cluster | Database | Used by | Reset policy |
+| --- | --- | --- | --- | --- |
+| Development | `jobflow-dev` (M0 shared) | `jobflow_dev` | Local `npm run dev` | May be dropped and recreated |
+| Test | `jobflow-dev` (M0 shared) | `jobflow_test` | Automated integration tests | Dropped or recreated per run |
+| Preview | `jobflow-dev` (M0 shared) | `jobflow_preview` | Vercel preview deployments | Reset on demand; never holds production data |
+| Production | `jobflow-prod` (M10+ dedicated) | `jobflow_prod` | Vercel production | Never reset; restore from backup only |
+
+- Co-locate the database with the functions: default `ap-south-1` (Mumbai) with Vercel region `bom1`. If the target audience is elsewhere, move both together before production rather than running Atlas on another continent.
+- `MONGODB_DB` must be set explicitly in every deployed environment. Do not rely on the local `jobflow` fallback in production.
+- Preview deployments use `jobflow_preview` and never receive production credentials. The preview database is reset on demand and never holds production data.
+- Atlas projects separate development from production; production alerts, backups, and billing are configured on the production project only.
+
+#### Collection inventory
+
+| # | Collection | Owner | Purpose | Expected volume |
+| --- | --- | --- | --- | --- |
+| 1 | `users` | Better Auth | One document per account: identity, normalized email, verification state | One per user |
+| 2 | `accounts` | Better Auth | Provider records, including the credential password hash | One per provider per user |
+| 3 | `sessions` | Better Auth | Server-side sessions for revocation and expiry | Bounded by session TTL |
+| 4 | `verification` | Better Auth | Email-verification tokens and future reset tokens | Bounded by token TTL |
+| 5 | `applications` | JobFlow app | One document per job application | Up to hundreds per user |
+| — | `changelog` | `migrate-mongo` | Applied-migration bookkeeping | One per migration |
+
+Collections deliberately **not** created in v1: `jobs`, `companies`, `interviews`, `contacts`, `attachments`, `notifications`, `applicationEvents`, `rateLimits`, and `auditLogs`. Company and role stay as strings on `applications`; adding normalized company or job entities is a tracker/product decision, not a database prerequisite.
+
+#### Relationships
+
+```text
+users 1 ──── N accounts        (userId)
+users 1 ──── N sessions        (userId)
+users 1 ──── N applications    (userId)
+verification                   (standalone; keyed by identifier, not userId)
+```
+
+- Relations are references, never embedded documents or arrays. A user's applications are not stored inside the user document because that array is unbounded, would approach MongoDB's 16 MB document limit, and defeats per-user index ordering.
+- MongoDB has no foreign keys and no row-level security. The server-only repository enforces ownership; every query and mutation includes `userId` from the validated session, never from a request body, query string, or header.
+- Cascade deletes are out of scope because account deletion is out of scope. If account deletion is added later, delete in the order `applications` → `sessions` → `accounts` → `users` with an idempotent cleanup, not a best-effort loop.
+
+#### Schema
+
+Common rules: `_id` is a BSON `ObjectId` unless noted; all dates are BSON `Date` values in UTC; field names are camelCase; strings are trimmed at the write boundary; `createdAt` and `updatedAt` are server-generated; optional fields are omitted or `null`, never empty strings; and the app never writes Better Auth collections directly.
+
+**`users`** — one document per account. Better Auth owns writes.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Yes | Primary key |
+| `name` | string | Yes | Trimmed, 1–200 characters |
+| `email` | string | Yes | Trimmed, lowercase, valid email, unique |
+| `emailVerified` | boolean | Yes | Defaults to `false`; becomes `true` only after verification |
+| `image` | string or null | No | Better Auth avatar field; unused in v1 |
+| `createdAt` | Date | Yes | UTC |
+| `updatedAt` | Date | Yes | UTC |
+
+**`accounts`** — one document per provider identity. Better Auth owns writes.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Yes | Primary key |
+| `userId` | ObjectId | Yes | References `users._id`; indexed |
+| `accountId` | string | Yes | Credential provider uses the user's ID; OAuth uses the provider's ID |
+| `providerId` | string | Yes | `credential` in v1; `google` reserved for later |
+| `password` | string | No | Auth-library hash only; never logged, returned, or selected by client code |
+| `accessToken` | string or null | No | Reserved for OAuth |
+| `refreshToken` | string or null | No | Reserved for OAuth |
+| `idToken` | string or null | No | Reserved for OAuth |
+| `accessTokenExpiresAt` | Date or null | No | Reserved for OAuth |
+| `refreshTokenExpiresAt` | Date or null | No | Reserved for OAuth |
+| `scope` | string or null | No | Reserved for OAuth |
+| `createdAt` | Date | Yes | UTC |
+| `updatedAt` | Date | Yes | UTC |
+
+**`sessions`** — server-side session records. Better Auth owns writes.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Yes | Primary key |
+| `token` | string | Yes | Unique, secret; never logged or exposed to client JavaScript |
+| `userId` | ObjectId | Yes | References `users._id`; indexed |
+| `expiresAt` | Date | Yes | 30 days from creation; TTL deletes at expiry |
+| `ipAddress` | string or null | No | Optional audit context; not displayed in UI |
+| `userAgent` | string or null | No | Optional audit context; not displayed in UI |
+| `createdAt` | Date | Yes | UTC |
+| `updatedAt` | Date | Yes | UTC |
+
+**`verification`** — one-time verification and future reset tokens. Better Auth owns writes. Despite the singular name, it holds many documents.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Yes | Primary key |
+| `identifier` | string | Yes | Email or purpose-scoped identifier; indexed; treated as opaque |
+| `value` | string | Yes | One-time secret; never logged or returned |
+| `expiresAt` | Date | Yes | One hour for email verification; TTL deletes at expiry |
+| `createdAt` | Date | Yes | UTC |
+| `updatedAt` | Date | Yes | UTC |
+
+**`applications`** — one document per application. The only product-data collection in v1.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Yes | Primary key; serialized as a string |
+| `userId` | ObjectId | Yes | References `users._id`; derived from the session only |
+| `company` | string | Yes | Trimmed, 1–200 characters |
+| `role` | string | Yes | Trimmed, 1–200 characters |
+| `appliedAt` | Date | Yes | UTC; must not be in the future at write time |
+| `status` | string | Yes | One of `applied`, `screening`, `interview`, `offer`, `rejected`, `withdrawn`; defaults to `applied` |
+| `statusChangedAt` | Date | Yes | Equals `appliedAt` on create; set to the change time only when `status` changes |
+| `createdAt` | Date | Yes | Server time at insert |
+| `updatedAt` | Date | Yes | Server time at every update |
+
+- Editing `company`, `role`, or `appliedAt` must not change `statusChangedAt`. Only a status transition changes it.
+- A future `appliedAt` is rejected at the validation boundary with `400`; do not silently clamp it to `now` in the repository. Clamping hides client bugs and makes the stored date disagree with what the user submitted.
+- The six statuses remain string values, not numeric codes, so raw documents stay readable and indexes stay stable when the UI changes.
+- No `notes`, `url`, `salary`, `location`, or contact fields in v1. The tracker PRD decides which of those become real columns; adding them later is an additive schema change.
+
+Stored document shape (Mongo shell notation; the API boundary serializes `_id`/`userId` to strings and dates to ISO):
+
+```js
+{
+  _id: ObjectId("66f0c1b2e4b0a1c2d3e4f501"),
+  userId: ObjectId("66f0c1b2e4b0a1c2d3e4f500"),
+  company: "Northwind Labs",
+  role: "Frontend Engineer",
+  appliedAt: ISODate("2026-10-01T00:00:00.000Z"),
+  status: "interview",
+  statusChangedAt: ISODate("2026-10-08T09:30:00.000Z"),
+  createdAt: ISODate("2026-10-01T12:00:00.000Z"),
+  updatedAt: ISODate("2026-10-08T09:30:00.000Z")
+}
+```
+
+#### Index inventory
+
+| Collection | Index key | Name | Options | Serves |
+| --- | --- | --- | --- | --- |
+| `users` | `{ email: 1 }` | `users_email_unique` | Unique | Duplicate-email rejection, login lookup |
+| `sessions` | `{ token: 1 }` | `sessions_token_unique` | Unique | Session lookup by cookie token |
+| `sessions` | `{ userId: 1 }` | `sessions_userId` | — | Sign out all sessions, user cleanup |
+| `sessions` | `{ expiresAt: 1 }` | `sessions_expiresAt_ttl` | TTL, `expireAfterSeconds: 0` | Expired-session cleanup |
+| `accounts` | `{ userId: 1 }` | `accounts_userId` | — | Accounts for a user |
+| `accounts` | `{ providerId: 1, accountId: 1 }` | `accounts_provider_account_unique` | Unique | One identity per provider/account pair |
+| `verification` | `{ identifier: 1 }` | `verification_identifier` | — | Token lookup by email or identifier |
+| `verification` | `{ expiresAt: 1 }` | `verification_expiresAt_ttl` | TTL, `expireAfterSeconds: 0` | Expired-token cleanup |
+| `applications` | `{ userId: 1, appliedAt: -1, _id: -1 }` | `applications_user_applied_desc` | — | List one user's applications, newest first |
+| `applications` | `{ userId: 1, status: 1 }` | `applications_user_status` | — | Status filters and count grouping |
+| `changelog` | `migrate-mongo` default | — | — | Migration bookkeeping; not queried by the app |
+
+- The `applications` compound index starts with `userId`, so a separate `{ userId: 1 }` index is redundant. Keep only the two listed application indexes.
+- TTL deletion is asynchronous and can lag by about a minute. Code must still reject an expired session or token by comparing `expiresAt` with the current time; TTL is cleanup, not the security check.
+- Add the two new index requirements — `accounts_provider_account_unique` and `verification_expiresAt_ttl` — in a follow-up migration. Never edit a migration that may already be applied.
+- The application list query must use `applications_user_applied_desc` with no blocking in-memory sort; verify with `explain("executionStats")` and reject a `COLLSCAN` during review.
+
+#### Schema enforcement
+
+1. **TypeScript types** in `lib/db/types.ts` describe the stored shape for server code.
+2. **Zod schemas** at the API boundary validate untrusted input: trimmed company/role of 1–200 characters, a valid non-future `appliedAt`, and the six-value status enum.
+3. **The server-only repository** is the only application code allowed to touch `applications`. It derives `userId` from the session and includes it in every filter.
+4. **Unique indexes** enforce email and provider-identity uniqueness at the database level, closing the race between a pre-check and an insert.
+5. **Serialization** at the server boundary converts `_id` and `userId` to strings and `Date` values to ISO 8601 strings. Password hashes, session tokens, and verification values never cross that boundary.
+
+- No `$jsonSchema` collection validators in v1. Validation would otherwise live in Zod, TypeScript, and a Mongo validator that must be migrated in lockstep, and `collMod` would require a broader database role. Revisit this only if direct database edits become a real risk; if adopted, add validators through a migration and use a migration-only role.
+- Better Auth owns `users`, `accounts`, `sessions`, and `verification`. Application code reads them only through the auth library; debug scripts that read them directly must never be imported into request paths.
+- Do not add custom fields to auth collections in v1. Profile or preference data gets its own collection when a feature needs it.
+- Map duplicate-key error `11000` on `users_email_unique` to a field-specific duplicate-email error, not a generic server error. Map invalid ObjectIds and other-user records to `404`.
+
+#### Important decisions
+
+| Decision | Choice | Why and trade-off |
+| --- | --- | --- |
+| Database engine | MongoDB Atlas, native `mongodb` driver | Already mandated by PRD-004; document shape tolerates tracker fields without migrations. PostgreSQL, SQLite, and Mongoose were rejected because they conflict with that mandate or add a second data layer. Trade-off: no joins or foreign keys, so ownership and integrity live in the repository. |
+| Topology | Three-node replica set, no sharding | Gives high availability and transactions at low cost. A few million application documents are still within M10 storage; revisit before the working set outgrows RAM, and shard only after measured pressure. |
+| Environments | Separate logical databases; separate production cluster | Prevents test data and test migrations from reaching real users. Trade-off: production costs and config are managed twice. |
+| Region and tier | `ap-south-1` + Vercel `bom1`; M0 dev, M10+ prod | Keeps database round trips close to functions and provides backups in production. Revisit if the audience or Vercel plan changes. |
+| Collection names | Exact five names, plus `changelog` | Predictable code and migrations. Do not let the adapter create singular `user`/`session`/`account` duplicates. |
+| Auth model naming | Explicit per-model names; no blanket `usePlural` | `verification` is intentionally singular while the others are plural; a global plural flag would create the wrong set. |
+| Auth ownership | Better Auth owns four collections; app owns `applications` | Library upgrades and password/token rules stay in one place. The app must not hand-write hashes or session tokens. |
+| Identifiers | ObjectId `_id`; ObjectId `userId` references | Native, compact, indexed, and stable under rename. Serialize to strings only at the API boundary. |
+| Dates | BSON `Date` in UTC; ISO strings at the boundary | Correct sorting, TTL, and stale-day math. Trade-off: date-only input becomes a UTC timestamp and must be displayed consistently. |
+| Email identity | Trim and lowercase before every auth call; unique index; no collation | Case variants cannot create duplicate accounts, and Better Auth lookups stay exact. Trade-off: any future OAuth path must normalize too. |
+| Email verification | Resend; 1-hour token; unverified accounts cannot sign in | Confirms ownership before access and keeps the token short-lived. Requires a verified sending domain and a production API key. |
+| Sessions | Database-backed, browser-session cookie (no Max-Age), 30-day `expiresAt`, TTL | Revocable on sign-out and expires server-side. A cookie is shared by every tab and cleared when the browser session ends; it is not truly tab-scoped. True per-tab isolation would require a token in `sessionStorage` and lose HTTP-only protection. This replaces PRD-004's earlier tab-scoped wording. |
+| Status storage | String enum validated in Zod | Readable documents and stable indexes. Trade-off: the enum is enforced by code and must be updated in one shared schema. |
+| Per-user isolation | `userId` in every read and write; no RLS | MongoDB has no row-level security, so the repository is the security boundary. Integration tests must prove cross-user IDs return `404`. |
+| Derived data | No counters, summary documents, or status-history collection | Counts and trends are computed from applications, so they cannot drift. Trade-off: the 12-week trend reflects current status, not historical transitions. |
+| Tracker fields | Minimal `applications` in v1; `url`, `notes`, `salary`, `location`, and contacts arrive with PRD-006 | Keeps this PRD focused on the foundation. The tracker PRD owns the UI, validation, and additive migration for those fields. |
+| Deletes | Hard delete applications; no `deletedAt` | Simple and matches the current API. Trade-off: deletion is recoverable only from backups; the tracker UI needs confirmation before deleting. |
+| Account deletion | Deferred past v1; no deletion UI, cascade, or retention job | Avoids a half-built privacy flow. Trade-off: a public launch is blocked until a deletion and retention policy is designed and implemented. |
+| Concurrent edits | Last write wins; no version field | Appropriate for a single-owner application list. Revisit with optimistic concurrency if shared or multi-device editing causes lost updates. |
+| Migrations | `migrate-mongo`, immutable after apply, idempotent, index-only rollback | Repeatable setup and safe reruns. `down` drops indexes but never collections or user data. |
+| Seeding | No demo data in any environment by default; optional dev-only seed, never auto-run | Real accounts start empty and the empty state stays testable. Trade-off: manual demo setup when showcasing the app. |
+| Connection pooling | One cached `MongoClient` per process; `maxPoolSize=10`, `serverSelectionTimeoutMS=5000` | Prevents serverless instances from exhausting Atlas connections. Trade-off: raise the pool only after measuring connection pressure. |
+| Rate limiting | Better Auth in-memory limiter for v1 | No extra datastore or collection. Trade-off: limits are per serverless instance, so horizontal scaling weakens them; move to a shared store if that becomes a problem. |
+| Database user | One development user for the three non-production databases and one production user for `jobflow_prod`; both `readWrite` only and shared by the app and `migrate-mongo`; never an Atlas admin | Least privilege for app and migrations. `readWrite` can create indexes; if DB validators are added later, introduce a separate migration role. |
+| Network access | `0.0.0.0/0` on the Atlas access list for v1, with a dedicated production user, strong secret, TLS, and Atlas alerts | Works on Vercel plans without static egress and keeps setup simple. Trade-off: the database is reachable from any IP, so authentication and monitoring carry the protection; migrate to static egress or PrivateLink when available. |
+| Backups | Cloud Backup on production, daily snapshots, at least 7-day retention, one restore drill before launch | Protects against accidental deletes and bad migrations. Development and test rely on re-seeding, not backups. |
+| Read/write concerns | Primary reads, majority writes | Dashboard and session checks see the latest committed state. Secondary reads are not worth the staleness for this workload. |
+
+#### Setup and migration workflow
+
+1. Create the development Atlas project and `jobflow-dev` cluster in `ap-south-1`; create `jobflow-prod` separately when production is ready.
+2. Create one database user per cluster boundary: a development user with `readWrite` on `jobflow_dev`, `jobflow_test`, and `jobflow_preview`, and a production user with `readWrite` on `jobflow_prod` only. Never use an Atlas admin account in the app or in migrations.
+3. Add the developer IP to the development cluster's Atlas access list. Production uses `0.0.0.0/0` for v1 with a dedicated user, strong secret, TLS, and Atlas alerts; revisit static egress or PrivateLink when available.
+4. Set `MONGODB_URI`, `MONGODB_USER`, `MONGODB_PASSWORD`, `MONGODB_DB`, `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL` in `.env.local` for development and in the matching Vercel environment for deployments. Keep credentials out of the URI so special characters in the password are safe.
+5. Run `npm run db:check` to confirm TLS connectivity and authentication.
+6. Run `npm run migrate:up` to create the indexes and, implicitly, the five collections. Run `npm run migrate:status` to confirm the migration is applied.
+7. Verify `db.getCollectionNames()` returns exactly `accounts`, `applications`, `changelog`, `sessions`, `users`, and `verification`, then inspect `getIndexes()` for each collection.
+8. Complete one signup and one login, then confirm the `users`, `accounts`, and `sessions` documents and the session cookie attributes.
+9. Create one application and confirm its defaults, then edit it and confirm `statusChangedAt` behavior.
+10. Run `npm test`, `npm run lint`, and `npm run build`.
+
+Migration rules:
+
+- The existing `20251026000000-init-indexes.js` is the baseline. Add new timestamped migrations for the missing account and verification indexes; do not rewrite an applied migration.
+- Each migration has one purpose, is safe to run twice, and includes a `down` that reverses only what it created.
+- No migration inserts demo users or applications. Seed data, if needed, is a separate optional script.
+- Never drop a collection or field in `up` without an explicit data-retention decision in this PRD.
+- Production migrations run as a deliberate deploy step, not automatically from `next build` or a request.
+
+#### Edge cases
+
+- **Duplicate email:** two signups racing past the pre-check hit `users_email_unique`; the route returns a field-specific error on `email`.
+- **Case variants:** `User@Example.com` is normalized to `user@example.com` before signup and login, so the second attempt is rejected as a duplicate.
+- **Invalid ObjectId:** return `404`, never a driver exception or stack trace.
+- **Other user's record:** return `404` for read, update, and delete; never confirm that the record exists.
+- **Expired session or token:** reject by comparing `expiresAt` with the current time even if the TTL monitor has not deleted the document yet.
+- **Future `appliedAt`:** reject with `400`; do not clamp silently.
+- **Status changed twice in one update:** the last accepted status wins; `statusChangedAt` records that write.
+- **Multiple tabs:** every tab shares one browser-session cookie and one session document; signing out in one tab invalidates the others. This is browser-session scope, not per-tab scope.
+- **Company or role edit:** leaves `appliedAt`, `status`, and `statusChangedAt` unchanged.
+- **Orphaned documents:** manual user deletion can leave applications or sessions behind; there is no cascade in v1. Use a documented cleanup script if it happens.
+- **16 MB document limit:** not reachable because applications are separate documents and auth documents stay small; do not embed attachments.
+- **Special characters in the database password:** passed as driver options, not parsed from the URI; do not URL-encode them into `MONGODB_URI`.
+- **Partial signup:** rely on Better Auth's own flow; do not add a custom multi-collection transaction to the repository layer in v1.
+
+#### Acceptance criteria
+
+- Four logical databases exist: `jobflow_dev`, `jobflow_test`, `jobflow_preview`, and `jobflow_prod`; production is on a separate Atlas cluster, and preview deployments use `jobflow_preview`, never production.
+- A fresh database plus `npm run migrate:up` creates exactly six collections — `users`, `accounts`, `sessions`, `verification`, `applications`, and `changelog` — and rerunning the command is a no-op.
+- No singular `user`, `session`, or `account` collection exists after signup; Better Auth model names match the four configured auth model names exactly.
+- `users.email` is unique; sessions have a unique `token` index, a `userId` index, and an `expiresAt` TTL index; accounts have `userId` and unique `{ providerId, accountId }`; verification has `identifier` and `expiresAt` TTL; applications have the two compound indexes listed above.
+- The application list query uses `applications_user_applied_desc` with no `COLLSCAN` and no blocking in-memory sort.
+- A first signup writes one `users` document and one credential `accounts` document; the password is hashed, the email is lowercase, and no plaintext password or token is returned.
+- An unverified account cannot sign in or reach the workspace; a verification token older than 1 hour is rejected even before the TTL monitor removes it.
+- A second signup with the same email in different casing is rejected with a field-specific error.
+- Login creates a `sessions` document and an HTTP-only, browser-session cookie with no Max-Age or Expires attribute; a refresh in the same browser keeps the session, closing one tab does not sign the user out, closing the browser normally clears the cookie (subject to browser session-restore behavior), and sign-out deletes the session document and clears the cookie.
+- An expired session or verification token is rejected before the TTL monitor removes it; TTL indexes exist and are not the only expiry check.
+- Creating an application defaults `status` to `applied`, sets `statusChangedAt` equal to `appliedAt`, and fills `createdAt`/`updatedAt`; changing status updates `statusChangedAt`; editing company, role, or `appliedAt` does not.
+- A future `appliedAt`, an unknown status, an empty company, and a company over 200 characters are rejected with `400`; a future date is not silently clamped.
+- Two users cannot read, update, or delete each other's applications; invalid ObjectIds and cross-user identifiers return `404`; unauthenticated requests return `401`.
+- Responses contain string IDs and ISO date strings, never raw `ObjectId`, BSON `Date`, password hashes, session tokens, or verification values.
+- Production uses a database-scoped `readWrite` user, TLS via `mongodb+srv://`, the documented `0.0.0.0/0` access-list decision with Atlas alerts, Cloud Backup, and a tested restore; no Atlas admin or production credential appears in the repository or client bundle.
+- `npm test`, `npm run lint`, and `npm run build` pass, and the database, indexes, and migration workflow are documented in `README.md`, `ARCHITECTURE.md`, and `CHANGLOG.md`.
+
+#### Deliberate defaults
+
+One MongoDB Atlas deployment family, one database per environment, five domain collections, a single `applications` collection for product data, reference-based ownership through `userId`, ObjectId identifiers, UTC BSON dates, string statuses, `migrate-mongo` for indexes, no demo data, no database validators, no counters or history collection, and a 30-day server session carried by a browser-session cookie. These are intentionally boring choices that keep the v1 surface small; each has a named upgrade path above.
+
+#### Deferred decisions
+
+None blocking implementation. These are intentionally deferred and have a named trigger:
+
+- **Account deletion and retention:** Add a deletion policy, cascade or anonymization, and purge job before a public launch. V1 has no account-deletion UI.
+- **Static egress or PrivateLink:** Move production off `0.0.0.0/0` when Vercel static egress or Atlas PrivateLink is available. This is a deployment change, not a schema change.
+- **Status history:** Add an `applicationEvents` collection only if accurate historical trends or an audit trail become required. The current-status trend is accepted for v1.
+- **Shared rate limiting:** Replace the in-memory limiter with a shared store only when traffic or horizontal scaling makes per-instance limits insufficient.
+- **Tracker fields:** Add `url`, `notes`, `salary`, `location`, and contact fields with PRD-006 (tracker UI), using additive migrations.
+- **Trusted origins:** Confirm the production `BETTER_AUTH_URL` and trusted origins in PRD-004. This is a deployment configuration detail, not a schema question.
+- **Production tier review:** Re-evaluate M10 if connection pressure, storage, or backup needs exceed the launch assumption.

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import PasswordField from "@/components/auth/PasswordField";
-import { startMockSession, validateSignup, type FieldErrors } from "@/lib/auth";
+import { validateSignup, type FieldErrors } from "@/lib/auth";
+import { authClient } from "@/lib/auth/client";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -13,18 +14,41 @@ export default function SignupForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const validationErrors = validateSignup(fullName, email, password, confirmPassword);
     setErrors(validationErrors);
+    setFormError(null);
+    setSuccess(false);
 
     if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
-    startMockSession();
-    router.replace("/dashboard");
+    try {
+      const res = await authClient.signUp.email({
+        email: email.trim().toLowerCase(),
+        password,
+        name: fullName.trim(),
+      });
+
+      if (res?.error) {
+        const message = res.error.message || "";
+        if (message.toLowerCase().includes("email")) {
+          setErrors((prev) => ({ ...prev, email: "This email is already in use." }));
+          return;
+        }
+        setFormError("Unable to create account.");
+        return;
+      }
+
+      setSuccess(true);
+    } catch (e) {
+      setFormError("Unable to create account.");
+    }
   }
 
   return (
@@ -79,6 +103,8 @@ export default function SignupForm() {
           error={errors.confirmPassword}
           autoComplete="new-password"
         />
+        {formError ? <p className="field-error" role="alert">{formError}</p> : null}
+        {success ? <p className="field-success" role="status">Check your email to verify your account before signing in.</p> : null}
         <button className="button button-primary" type="submit">Create account</button>
       </form>
       <p className="auth-switch">Already have an account? <Link href="/login">Log in</Link></p>

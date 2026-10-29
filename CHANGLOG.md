@@ -2,6 +2,52 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-10-29 — Send Verification Emails on Sign-Up
+
+- Root cause: `emailVerification.sendOnSignUp` was enabled but no `sendVerificationEmail` handler was configured, so Better Auth silently skipped delivery and no email (or link) was produced.
+- Added `lib/auth/email.ts` with the verification email copy and a Resend sender (`RESEND_API_KEY`, optional `EMAIL_FROM`). Without a key, development logs the verification URL to the server console; production throws a clear error instead of failing silently.
+- Wired the handler into `lib/auth/config.ts` and documented `RESEND_API_KEY`/`EMAIL_FROM` in `.env.example` and the README.
+- Added `lib/auth/email.spec.mts` and included it in `npm test`.
+- Verified end to end against the running dev server and Atlas: sign-up created an unverified user, the console link verified the account (`emailVerified: true`, token consumed), then the test user was removed.
+- Validation: `npm test` passed 29 tests, `npm run lint` passed with warnings only, and `npm run build` completed.
+
+## 2026-10-29 — Connect Local Environment to Atlas and Run Migrations
+
+- Added the Atlas cluster host, database user, and password to the gitignored `.env.local`, split across `MONGODB_URI`, `MONGODB_USER`, and `MONGODB_PASSWORD`; `MONGODB_DB` stays `jobflow_dev` and the generated auth secret is unchanged.
+- `npm run db:check` connected to the Atlas cluster and reported the `jobflow_dev` database.
+- `npm run migrate:up` applied `20251026000000-init-indexes.js` and `20261029000000-add-auth-indexes.js`.
+- Verified the resulting state: `users`, `accounts`, `sessions`, `verification`, `applications`, and `changelog` exist; the unique `users.email`, `accounts.{providerId, accountId}`, `sessions.token`, `applications` compound, and the `sessions.expiresAt`/`verification.expiresAt` TTL indexes are present.
+- No application code changed; `TASKS.md` now records the completed live check.
+
+## 2026-10-29 — Implement PRD-005 Database Foundation
+
+- Defaulted `MONGODB_DB` to `jobflow_dev`, required it in deployed environments, and restricted deployed values to the four environment-suffixed database names.
+- Added MongoClient `maxPoolSize: 10` and `serverSelectionTimeoutMS: 5000`; aligned `.env.example`, `migrate-mongo-config.js`, `scripts/check-db.mjs`, `README.md`, and `prerequisites.md` with the new database names.
+- Configured Better Auth's collection names explicitly (`users`, `accounts`, `sessions`, `verification`), set sessions to 30 days, and set verification tokens to 1 hour.
+- Added migration `20261029000000-add-auth-indexes.js` for the unique `{ providerId, accountId }` account index and the `verification.expiresAt` TTL index.
+- Added Zod create/update schemas for applications and centralized the future-date guard; the repository now rejects a future `appliedAt` instead of clamping it.
+- Added `lib/db/migrations.spec.mts` and expanded `lib/validators/applications.spec.mts`; wired both into `npm test`. Added `zod` as a direct dependency.
+- Removed three `as any` casts from the auth forms and `lib/auth/server.ts` so lint has no errors.
+- Updated `ARCHITECTURE.md`, `TASKS.md`, and the README project map.
+- Created the local, gitignored `.env.local` with `MONGODB_DB=jobflow_dev`, a generated 64-character auth secret, and commented Atlas placeholders.
+- Validation: `npm test` passed 26 tests, `npm run lint` passed with warnings only, and `npm run build` completed. Live `db:check` and `migrate:up` were not run because the Atlas URI, user, and password are not filled in.
+
+## 2026-10-29 — Grill and Lock PRD-005 Database Decisions
+
+- Ran the PRD-005 grilling and locked the remaining database and deployment decisions: Atlas `ap-south-1` with Vercel `bom1`, M10+ production, Resend email verification with 1-hour tokens, browser-session HTTP-only cookies with a 30-day server expiry, account deletion deferred past v1, a dedicated `jobflow_preview` database, environment-suffixed database names, in-memory rate limiting for v1, no status-history collection, minimal `applications` with tracker fields deferred to PRD-006, one `readWrite` user per cluster boundary for app and migrations, `0.0.0.0/0` with alerts for v1, 7-day backups, and future `appliedAt` rejected with `400`.
+- Updated PRD-005 to **Ready for Code**, replaced its open questions with deferred decisions, and added the locked decisions to its decision table, setup workflow, edge cases, and acceptance criteria.
+- Reconciled PRD-004's stale session, network, email, and rate-limit wording with the locked decisions and resolved its open questions except the production trusted-origins configuration.
+- Moved **PRD-005.0** in `TASKS.md` to **Ready for Code** and aligned the affected PRD-004 task descriptions.
+- No application code changed; no lint, test, or build run was required for this documentation-only change.
+
+## 2026-10-29 — Add Database Setup and Schema PRD
+
+- Added PRD-005 to `PRD.md` as the database companion to PRD-004: environment layout, five domain collections plus the migration `changelog`, field-level schemas, relationships, index inventory, validation boundaries, migration rules, retention and backup decisions, edge cases, acceptance criteria, and open questions.
+- Locked the v1 defaults: MongoDB Atlas replica set, separate dev/test/preview/prod databases, production on its own cluster, ObjectId identifiers, UTC BSON dates, string statuses, Better Auth ownership of auth collections, `userId` isolation, no database validators, no counters or status-history collection, and `migrate-mongo` migrations.
+- Clarified that a no-Max-Age cookie is browser-session scoped, not truly tab-scoped, and recorded the correction to PRD-004's conflicting session wording as an open question.
+- Renumbered the future tracker UI from PRD-005 to PRD-006 in PRD-004's references so the database requirement can take PRD-005.
+- No application code changed; no lint, test, or build run was required for this documentation-only change.
+
 ## 2026-10-29 — Add MongoDB Environment Configuration
 
 - Added `.env.example` with the required `MONGODB_URI`, `MONGODB_USER`, `MONGODB_PASSWORD`, `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL` placeholders plus the optional `MONGODB_DB`.

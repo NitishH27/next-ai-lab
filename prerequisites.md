@@ -31,7 +31,7 @@ cp .env.example .env.local
 | `MONGODB_URI` | Yes | MongoDB Atlas cluster host, without credentials |
 | `MONGODB_USER` | Yes | Atlas database user |
 | `MONGODB_PASSWORD` | Yes | Atlas database password, kept literal |
-| `MONGODB_DB` | No | Database name, defaults to `jobflow` |
+| `MONGODB_DB` | Deployed | Database name. Local default is `jobflow_dev`; use `jobflow_test` for integration tests, `jobflow_preview` for preview deployments, and `jobflow_prod` for production |
 | `BETTER_AUTH_SECRET` | Yes | Long random secret for Better Auth |
 | `BETTER_AUTH_URL` | Yes | Base URL of the app, e.g. `http://localhost:3000` |
 
@@ -40,6 +40,7 @@ cp .env.example .env.local
 - Credentials are passed separately from the URI, so special characters in the password do not need URL-encoding.
 - Server-only secrets must stay out of `"use client"` components.
 - The server fails fast with a clear error when a required variable is missing.
+- Use the environment-suffixed database names (`jobflow_dev`, `jobflow_test`, `jobflow_preview`, `jobflow_prod`). Deployed environments must set `MONGODB_DB` explicitly.
 
 ## 3. Setup
 

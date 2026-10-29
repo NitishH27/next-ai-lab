@@ -3,6 +3,7 @@ import 'server-only';
 import { ObjectId } from 'mongodb';
 import { getApplicationsCollection } from '@/lib/db/collections';
 import { ApplicationStatus } from '@/lib/applications';
+import { assertAppliedAtNotFuture } from '@/lib/validators/applications';
 
 function toObjectId(id: string): ObjectId | null {
   try {
@@ -35,7 +36,8 @@ export async function createApplication(
   if (!uid) throw new Error('Invalid user');
 
   const now = new Date();
-  const appliedAt = data.appliedAt > now ? now : data.appliedAt;
+  assertAppliedAtNotFuture(data.appliedAt, now);
+  const appliedAt = data.appliedAt;
   const status = data.status || 'applied';
 
   const result = await collection.insertOne({
@@ -72,7 +74,8 @@ export async function updateApplication(
   if (updates.company !== undefined) set.company = updates.company;
   if (updates.role !== undefined) set.role = updates.role;
   if (updates.appliedAt !== undefined) {
-    set.appliedAt = updates.appliedAt > now ? now : updates.appliedAt;
+    assertAppliedAtNotFuture(updates.appliedAt, now);
+    set.appliedAt = updates.appliedAt;
   }
   if (updates.status !== undefined && updates.status !== existing.status) {
     set.status = updates.status;

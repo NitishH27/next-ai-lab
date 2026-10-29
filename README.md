@@ -64,14 +64,26 @@ cp .env.example .env.local
 | `MONGODB_URI` | Yes | MongoDB Atlas cluster host, without embedded credentials |
 | `MONGODB_USER` | Yes | Atlas database user |
 | `MONGODB_PASSWORD` | Yes | Atlas database password; kept literal, so `@` and other special characters are safe |
-| `MONGODB_DB` | No | Database name; defaults to `jobflow` |
+| `MONGODB_DB` | Deployed | Database name. Local default is `jobflow_dev`; use `jobflow_test`, `jobflow_preview`, or `jobflow_prod` per environment |
 | `BETTER_AUTH_SECRET` | Yes | Long random secret used by Better Auth |
 | `BETTER_AUTH_URL` | Yes | Base URL of the app, for example `http://localhost:3000` |
+| `RESEND_API_KEY` | Production | Resend key for verification emails. Locally, omit it and the verification link is printed to the dev server console |
+| `EMAIL_FROM` | No | Sender for verification emails; defaults to `JobFlowAI <onboarding@resend.dev>`. Resend requires a verified domain for real recipients |
 
 Get the host from **Database → Connect → Drivers**. Credentials are passed to the
 driver separately from the URI, so special characters in the password do not need
 URL-encoding. `.env.local` is gitignored; never commit real credentials. The server
 fails fast with a clear error when a required variable is missing.
+
+Verification emails go through Resend. Without `RESEND_API_KEY`, local sign-up logs
+the verification URL to the dev server console instead of emailing it; open that
+link to activate the account before signing in.
+
+Development, test, preview, and production each use an environment-suffixed
+database: `jobflow_dev`, `jobflow_test`, `jobflow_preview`, and `jobflow_prod`.
+Development, test, and preview share the M0 development cluster; production uses a
+separate M10-or-higher cluster in `ap-south-1`. Run `npm run migrate:up` after
+configuring a new database to create the six collections and their indexes.
 
 Start the development server:
 
@@ -84,11 +96,13 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ### Available Commands
 
 ```bash
-npm run dev      # Start the development server
-npm run build    # Create a production build
-npm run start    # Start the production server
-npm run lint     # Run ESLint, if configured
-npm run db:check # Verify the MongoDB connection from .env.local
+npm run dev        # Start the development server
+npm run build      # Create a production build
+npm run start      # Start the production server
+npm run lint       # Run ESLint, if configured
+npm run db:check   # Verify the MongoDB connection from .env files
+npm run migrate:up # Apply pending index migrations
+npm run migrate:down # Roll back the last migration
 ```
 
 Check `package.json` for the commands configured in the current project.
@@ -97,9 +111,14 @@ Check `package.json` for the commands configured in the current project.
 
 ```text
 JobFlowAI/
+├── app/                    # Next.js App Router routes, layouts, and global styles
+├── components/             # Reusable auth, dashboard, and workspace UI
+├── lib/                    # Shared helpers
+│   ├── db/                 # Cached MongoClient, database accessors, stored types
+│   └── validators/         # Server-side input guards
+├── migrations/             # migrate-mongo index migrations
+├── scripts/                # Operational checks such as db:check
 ├── public/                 # Static assets
-├── src/
-│   └── app/                # Next.js App Router
 ├── AGENTS.md               # AI coding agent instructions
 ├── RULES.md                # Development and coding rules
 ├── ARCHITECTURE.md         # Application architecture

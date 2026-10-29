@@ -25,7 +25,7 @@ if (process.env.MONGODB_USER && process.env.MONGODB_PASSWORD) {
 const config = {
   mongodb: {
     url: process.env.MONGODB_URI,
-    databaseName: process.env.MONGODB_DB || 'jobflow',
+    databaseName: process.env.MONGODB_DB || 'jobflow_dev',
     options: mongoOptions,
   },
   migrationsDir: "migrations",
