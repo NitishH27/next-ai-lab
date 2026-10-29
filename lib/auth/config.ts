@@ -2,11 +2,12 @@ import 'server-only';
 
 import { betterAuth } from 'better-auth';
 import { mongodbAdapter } from '@better-auth/mongo-adapter';
+import { getDb } from '@/lib/db/connect';
 import { getMongoClient } from '@/lib/db/client';
 import { env } from '@/lib/env';
 
 export const auth = betterAuth({
-  database: mongodbAdapter(await getMongoClient()),
+  database: mongodbAdapter(await getDb(), { client: await getMongoClient() }),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

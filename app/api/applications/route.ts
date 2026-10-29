@@ -6,8 +6,6 @@ import { createApplicationSchema } from '@/lib/validators/applications';
 import { createApplication, listApplications } from '@/lib/repositories/applications';
 import { serializeApplication } from '@/lib/utils/serialization';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
   try {
     const session = await getSession();

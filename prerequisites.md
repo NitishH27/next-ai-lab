@@ -12,20 +12,34 @@ AI-assisted implementation workflow defined in `AGENTS.md` and `RULES.md`.
 | Git | 2.x | Cloning and version control | Recommended, not required to run the app. |
 | Modern browser | Latest Chrome, Edge, Firefox, or Safari | Viewing the app | Needs `sessionStorage` support for the mock auth session. |
 | Python 3 | 3.x (optional) | `suggest-lucide-icons` catalog search script | No third-party packages required. Only needed while picking icons. |
-| Internet access | — | `npm install` and the Lucide catalog lookup | The running app itself has no network dependency. |
+| Internet access | — | `npm install`, Atlas connections, and the Lucide catalog lookup | The app needs network access to reach MongoDB Atlas. |
 
-Not required today: Docker, a database server, or cloud accounts. Authentication is a
-`sessionStorage` mock and dashboard data is static sample data in `lib/applications.ts`.
+A MongoDB Atlas cluster is required. Authentication and persistence use the native
+`mongodb` driver against that cluster; no local MongoDB server is needed.
 
 ## 2. Environment Variables
 
-No environment variables are read by the current codebase, so no `.env.local` file is
-required to run the app.
+The app reads its MongoDB and Better Auth configuration from environment variables. Copy
+`.env.example` to `.env.local` and fill in the values:
 
-- `.gitignore` excludes `.env*`, so local secrets are never committed.
-- When real integrations are added, document each variable name here and commit an
-  `.env.example` with blank values. Never commit real values.
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `MONGODB_URI` | Yes | MongoDB Atlas cluster host, without credentials |
+| `MONGODB_USER` | Yes | Atlas database user |
+| `MONGODB_PASSWORD` | Yes | Atlas database password, kept literal |
+| `MONGODB_DB` | No | Database name, defaults to `jobflow` |
+| `BETTER_AUTH_SECRET` | Yes | Long random secret for Better Auth |
+| `BETTER_AUTH_URL` | Yes | Base URL of the app, e.g. `http://localhost:3000` |
+
+- `.gitignore` excludes `.env*` but keeps `.env.example` tracked.
+- `.env.example` contains placeholders only. Never commit real values.
+- Credentials are passed separately from the URI, so special characters in the password do not need URL-encoding.
 - Server-only secrets must stay out of `"use client"` components.
+- The server fails fast with a clear error when a required variable is missing.
 
 ## 3. Setup
 

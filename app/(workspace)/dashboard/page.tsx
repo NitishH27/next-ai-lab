@@ -9,8 +9,6 @@ import {
 import ApplicationSummary from "@/components/dashboard/ApplicationSummary";
 import ApplicationTrendChart from "@/components/dashboard/ApplicationTrendChart";
 
-export const dynamic = 'force-dynamic';
-
 export default async function DashboardPage() {
   const session = await getSession();
 

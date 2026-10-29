@@ -21,6 +21,8 @@ The project is also a learning environment for modern web development and struct
 - React
 - TypeScript
 - Tailwind CSS
+- MongoDB Atlas with the native `mongodb` driver
+- Better Auth
 - ESLint
 - Lottie animations
 
@@ -49,6 +51,28 @@ Install dependencies:
 npm install
 ```
 
+### Environment Variables
+
+Copy the example file and fill in the required values:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `MONGODB_URI` | Yes | MongoDB Atlas cluster host, without embedded credentials |
+| `MONGODB_USER` | Yes | Atlas database user |
+| `MONGODB_PASSWORD` | Yes | Atlas database password; kept literal, so `@` and other special characters are safe |
+| `MONGODB_DB` | No | Database name; defaults to `jobflow` |
+| `BETTER_AUTH_SECRET` | Yes | Long random secret used by Better Auth |
+| `BETTER_AUTH_URL` | Yes | Base URL of the app, for example `http://localhost:3000` |
+
+Get the host from **Database → Connect → Drivers**. Credentials are passed to the
+driver separately from the URI, so special characters in the password do not need
+URL-encoding. `.env.local` is gitignored; never commit real credentials. The server
+fails fast with a clear error when a required variable is missing.
+
 Start the development server:
 
 ```bash
@@ -64,6 +88,7 @@ npm run dev      # Start the development server
 npm run build    # Create a production build
 npm run start    # Start the production server
 npm run lint     # Run ESLint, if configured
+npm run db:check # Verify the MongoDB connection from .env.local
 ```
 
 Check `package.json` for the commands configured in the current project.

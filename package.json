@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:check": "node scripts/check-db.mjs",
     "test": "node --test lib/auth.spec.mts lib/applications.spec.mts lib/navigation.spec.mts",
     "migrate:up": "migrate-mongo up",
     "migrate:down": "migrate-mongo down"

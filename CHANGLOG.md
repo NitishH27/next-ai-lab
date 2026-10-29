@@ -2,6 +2,16 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-10-29 — Add MongoDB Environment Configuration
+
+- Added `.env.example` with the required `MONGODB_URI`, `MONGODB_USER`, `MONGODB_PASSWORD`, `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL` placeholders plus the optional `MONGODB_DB`.
+- Created a local `.env.local` with a generated auth secret and the Atlas cluster, database user, and password (password kept literal so `@` is not parsed from the URI).
+- Passed MongoDB credentials through driver options in `lib/db/client.ts` and `migrate-mongo-config.js` instead of embedding them in the URI.
+- Added `npm run db:check` to verify the configured connection.
+- Un-ignored `.env.example` in `.gitignore` while keeping real `.env*` files untracked.
+- Made `migrate-mongo-config.js` load `.env.local` and `.env` so migrations use the same `MONGODB_URI` as the app.
+- Documented environment setup in `README.md` and refreshed `prerequisites.md`.
+
 ## 2026-10-16 — Add Repository Contributor Guide
 
 - Added `AGENTS.md` with project structure, development commands, coding conventions, validation guidance, and pull request expectations.
