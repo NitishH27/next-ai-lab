@@ -22,7 +22,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import "ag-grid-community/styles/ag-grid.css";
 import "./applications-grid.css";
 
-export type ApplicationRow = {
+type ApplicationRow = {
   id: string;
   company: string;
   role: string;
@@ -90,7 +90,7 @@ function StatusChangedCellRenderer({ value }: ICellRendererParams<ApplicationRow
   );
 }
 
-export const applicationColumnDefs: ColDef<ApplicationRow>[] = [
+const applicationColumnDefs: ColDef<ApplicationRow>[] = [
   {
     field: "company",
     headerName: "Company",
@@ -126,13 +126,13 @@ export const applicationColumnDefs: ColDef<ApplicationRow>[] = [
   },
 ];
 
-export const applicationDefaultColDef: ColDef<ApplicationRow> = {
+const applicationDefaultColDef: ColDef<ApplicationRow> = {
   sortable: true,
   filter: false,
   resizable: true,
 };
 
-export function getApplicationRowId(params: GetRowIdParams<ApplicationRow>) {
+function getApplicationRowId(params: GetRowIdParams<ApplicationRow>) {
   return params.data.id;
 }
 
