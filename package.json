@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "@better-auth/mongo-adapter": "^1.7.13",
+    "ag-grid-community": "^36.2.0",
+    "ag-grid-react": "^36.2.0",
     "better-auth": "^1.7.13",
+    "dayjs": "^1.11.23",
     "lottie-react": "^3.1.2",
     "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",

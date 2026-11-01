@@ -12,6 +12,16 @@ test("dashboard record supplies the page label, title, and description", () => {
   assert.equal(getWorkspaceTitle("/dashboard"), "Dashboard");
 });
 
+test("applications record supplies the page label, title, and description", () => {
+  assert.deepEqual(findWorkspacePage("/applications"), {
+    href: "/applications",
+    label: "Applications",
+    title: "Applications",
+    description: "Track and manage your job applications.",
+  });
+  assert.equal(getWorkspaceTitle("/applications"), "Applications");
+});
+
 test("unknown and nested workspace paths fall back to JobFlow", () => {
   assert.equal(findWorkspacePage("/unknown"), undefined);
   assert.equal(findWorkspacePage("/dashboard/applications"), undefined);

@@ -12,6 +12,12 @@ export const workspacePages: readonly WorkspacePage[] = [
     title: "Dashboard",
     description: "Welcome to dashboard.",
   },
+  {
+    href: "/applications",
+    label: "Applications",
+    title: "Applications",
+    description: "Track and manage your job applications.",
+  },
 ];
 
 export function findWorkspacePage(pathname: string): WorkspacePage | undefined {

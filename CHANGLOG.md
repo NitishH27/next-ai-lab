@@ -256,3 +256,8 @@ This file records repository changes made by Codex, with a dated title and a bri
 - Noted that the cluster's transaction support is available to the shared auth adapter, and that production uses a paid Atlas cluster tier with backups.
 - Added an acceptance criterion for connecting to the configured Atlas cluster and narrowed the remaining infrastructure question from Atlas topology to cluster tier, region, and database names.
 - Documentation-only change; no runtime or build output changed.
+
+## 2026-11-01 — Add PRD-006 Application Tracker
+
+- Added PRD-006 for adding/editing applications with AG Grid list, search, drawer/form per better-ui, dayjs DDMMMYY formatting, no delete for v1.
+

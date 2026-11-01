@@ -534,3 +534,39 @@ None blocking implementation. These are intentionally deferred and have a named 
 - **Tracker fields:** Add `url`, `notes`, `salary`, `location`, and contact fields with PRD-006 (tracker UI), using additive migrations.
 - **Trusted origins:** Confirm the production `BETTER_AUTH_URL` and trusted origins in PRD-004. This is a deployment configuration detail, not a schema question.
 - **Production tier review:** Re-evaluate M10 if connection pressure, storage, or backup needs exceed the launch assumption.
+
+### PRD-006 — Application Tracker (Add, Edit, Manage Applications)
+
+- **Status:** Proposed
+- **Problem and users:** Signed-in users can now authenticate and see an empty dashboard (PRD-004), but they have no way to add, view, edit, or update the status of their job applications. They need a dedicated tracker to record applications with company, role, applied date, and status so the dashboard widgets and trend chart reflect their real data.
+- **Compatibility note:** This builds on PRD-004 (real accounts, per-user persistence) and PRD-005 (schema/indexes). PRD-002's six statuses, counting formulas, stale rule, response-rate formula, and chart behavior remain unchanged. PRD-003's shared workspace shell will host this page. The dashboard must continue to read from the same per-user records and no longer show sample data (already specified in PRD-004). Existing `summarizeApplications()` and `getWeeklyApplicationCounts()` must remain unchanged.
+- **Requirements:**
+  - **Route and shell:** Add a new workspace route at `app/(workspace)/applications/page.tsx` (public URL `/applications`). It must render inside the shared workspace layout, inherit the auth guard, and follow the shell header/title pattern from navigation.
+  - **Navigation:** Add an entry to `lib/navigation.ts` for `/applications` with label `Applications`, title `Applications`, and a short description (e.g. "Track and manage your job applications."). Only existing routes may appear; use `lucide-react` and confirm the icon with `suggest-lucide-icons` before adding (do not hand-draw SVGs). Update `lib/navigation.spec.mts` to cover the new record.
+  - **List view:** Display the user's applications in an AG Grid table (using AG Grid as appropriate for the project) sorted by `appliedAt` descending, with `_id` as a stable tie-breaker (match repository query behavior). Include a search/filter control to search the list. Show columns: Company, Role, Applied, Status, Status changed, Actions (Edit). Use `dayjs` to format dates as `DDMMMYY` (e.g., 01Nov26). Use tabular numerals where appropriate and keep it readable at 200% zoom.
+  - **Add application:** Provide an "Add application" / "Create" button. Follow `better-ui` skill guidance and fit the system design - use a drawer (preferred) or other pattern that feels right; it must open in a way consistent with the workspace shell and be accessible (keyboard, focus trap). Required fields: Company, Role, Applied date (`appliedAt`), Status (dropdown). Status defaults to `applied` on create. Applied date has no default - user must pick a date.
+  - **Edit application:** Allow editing Company, Role, Applied date, and Status for an existing application via the Actions/Edit control (in the drawer/form consistent with add). Editing Company or Role must not change `statusChangedAt` or `appliedAt`. Changing Status must update `statusChangedAt` to the server time only if the status value actually changes (do not update if status remains the same).
+  - **Delete application:** Skipped for now (no delete action in v1 of this PRD).
+  - **Validation (client + server):**
+    - Company and Role: trimmed, non-empty, max 200 characters. Show field-level errors.
+    - Applied date: valid date, not in the future. No default is provided; user must select a date. Reject with `400` on server; show clear error on client.
+    - Status: must be one of `applied | screening | interview | offer | rejected | withdrawn`.
+  - **Data layer:** Use the server-only repository pattern (no direct collection access from route handlers/components). All reads/mutations must include `userId` from the validated session. Derive `userId` from session only (never from body/query). Serialize `_id`, `userId` as strings and dates as ISO strings at the API boundary.
+  - **API/Server Actions:** Provide authenticated endpoints or Next.js Server Actions for list, create, update. Return appropriate status codes: `401` unauthenticated, `400` invalid input (field-safe messages), `404` record not found or belongs to another user (do not leak existence), `429` if rate-limited.
+  - **Empty state:** When the user has no applications, show an empty state with a clear message and a primary action to "Add your first application". Do not show the sample-data notice (already removed by PRD-004).
+  - **Integration with dashboard:** The dashboard must automatically reflect changes (no caching of per-user data). Creating/updating applications must update KPI counts, response rate, stale flags, and the 12-week trend chart on next load.
+  - **UX details:** Follow `SYSTEM_DESIGN.md` and `better-ui`. Use `lucide-react` icons only where needed (confirm names). Keep forms accessible (labels, errors, keyboard navigation). No hover effects that imply navigation unless the element is actually navigable. Use `dayjs` for date formatting as specified.
+  - **Security:** Never return another user's record. Map invalid ObjectIds to `404`. Never log full payloads with sensitive data. Rely on auth library CSRF/origin checks.
+- **Acceptance criteria:**
+  - `/applications` is accessible only to signed-in users; signed-out users are redirected to `/login`. Signed-in users see the applications list inside the workspace shell.
+  - Navigation includes `Applications` with the correct icon and it links to `/applications`.
+  - User can add a new application with valid data via the "Add/Create" button which opens a drawer/form (per better-ui guidance). It appears in the AG Grid list immediately (revalidated). Status defaults to `applied` and `statusChangedAt` equals `appliedAt` on create. Applied date must be selected by user (no default).
+  - User can edit company/role/appliedAt/status via the Edit action. Editing company/role does not change `statusChangedAt`; changing status updates `statusChangedAt` to server time only if the status value actually changes.
+  - Validation prevents future `appliedAt`, empty/overlong company/role, and invalid status with clear errors.
+  - A user cannot access another user's application via direct ID manipulation (returns `404`). Unauthenticated requests return `401`.
+  - Empty state is shown when there are zero applications with a prompt to add one.
+  - Dashboard reflects the user's real applications (no sample data). KPI and chart behave exactly as specified in PRD-002.
+  - Dates are formatted with `dayjs` as `DDMMMYY`. AG Grid table includes search functionality.
+  - `npm test`, `npm run lint`, and `npm run build` pass. Navigation tests updated.
+- **Out of scope:** Bulk import/export, CSV, attachments, notes, salary/location/contact fields, status history/audit log, reminders/follow-ups UI, tags, companies database, sharing, and delete functionality (skipped for now).
+- **Open questions:** None blocking. Pagination deferred for v1 (assume reasonable number of applications per user).
