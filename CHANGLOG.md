@@ -2,6 +2,12 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-10-31 — Add Beginner-Friendly Project Guide
+
+- Added `detailedInfo.md`, a complete beginner's walkthrough of what Next.js is, how this app uses it, file-based routing, Server vs Client Components, frontend/backend boundaries, Better Auth signup/login/verification flows, MongoDB concepts, the cached connection chain, schema and indexes, end-to-end data flows, validation, environment setup, the folder map, and UI/accessibility standards.
+- Documented the current implementation accurately, including where the code differs from older docs (real auth instead of the mock prototype, the pass-through `AuthRoute`, client-side redirects on `/login` and `/signup`, the missing tracker UI, and rate limiting not yet configured).
+- Validation: documentation-only change; no app code, routes, or dependencies changed, so lint and build were not required.
+
 ## 2026-10-29 — Send Verification Emails on Sign-Up
 
 - Root cause: `emailVerification.sendOnSignUp` was enabled but no `sendVerificationEmail` handler was configured, so Better Auth silently skipped delivery and no email (or link) was produced.
