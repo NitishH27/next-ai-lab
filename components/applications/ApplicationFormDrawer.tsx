@@ -13,11 +13,17 @@ type ApplicationFormData = {
 };
 
 type ApplicationFormDrawerProps = {
-  isOpen: boolean;
   onClose: () => void;
   mode: "create" | "edit";
   initialData?: ApplicationFormData;
   onSuccess?: () => void;
+};
+
+const emptyForm: ApplicationFormData = {
+  company: "",
+  role: "",
+  appliedAt: "",
+  status: "applied",
 };
 
 const statusOptions = [
@@ -29,50 +35,68 @@ const statusOptions = [
   { value: "withdrawn", label: "Withdrawn" },
 ];
 
+const focusableSelector =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function ApplicationFormDrawer({
-  isOpen,
   onClose,
   mode,
   initialData,
   onSuccess,
 }: ApplicationFormDrawerProps) {
-  const [formData, setFormData] = useState<ApplicationFormData>({
-    company: "",
-    role: "",
-    appliedAt: "",
-    status: "applied",
-  });
+  const [formData, setFormData] = useState<ApplicationFormData>(
+    mode === "edit" && initialData ? initialData : emptyForm,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
 
   useEffect(() => {
-    if (isOpen && mode === "edit" && initialData) {
-      setFormData(initialData);
-    } else if (isOpen && mode === "create") {
-      setFormData({
-        company: "",
-        role: "",
-        appliedAt: "",
-        status: "applied",
-      });
-    }
-    setErrors({});
-    if (isOpen) {
-      setTimeout(() => firstInputRef.current?.focus(), 100);
-    }
-  }, [isOpen, mode, initialData]);
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
+    const trigger = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    firstInputRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(focusableSelector);
+      if (!focusable || focusable.length === 0) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      trigger?.focus();
+    };
+  }, []);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -141,127 +165,102 @@ export function ApplicationFormDrawer({
           onClose();
         }
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: "An error occurred. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div
-        className="fixed inset-0 transition-opacity duration-200"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <div className="drawer-layer">
+      <div className="drawer-backdrop" onClick={onClose} aria-hidden="true" />
       <div
         ref={drawerRef}
-        className="relative ml-auto w-full max-w-md h-full border-l border-border flex flex-col shadow-xl transform transition-transform duration-200 ease-out"
+        className="drawer-panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-title"
-        style={{ animation: "slideIn 200ms ease-out", backgroundColor: "var(--surface)" }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 id="drawer-title" className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-            {mode === "create" ? "Add Application" : "Edit Application"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-surface-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" style={{ color: "var(--text)" }} />
+        <div className="drawer-header">
+          <h2 id="drawer-title">{mode === "create" ? "Add application" : "Edit application"}</h2>
+          <button type="button" onClick={onClose} className="drawer-close" aria-label="Close">
+            <X size={20} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4" style={{ overscrollBehavior: "contain" }}>
+        <form onSubmit={handleSubmit} className="drawer-form" noValidate>
           {errors.general && (
-            <div className="p-3 rounded-md bg-danger/10 border border-danger/20">
-              <p className="text-sm" style={{ color: "var(--danger)" }}>
-                {errors.general}
-              </p>
-            </div>
+            <p className="drawer-error" role="alert">
+              {errors.general}
+            </p>
           )}
 
-          <div>
-            <label htmlFor="company" className="block text-sm font-medium mb-1" style={{ color: "var(--text)" }}>
-              Company *
-            </label>
+          <div className="form-field">
+            <label htmlFor="company">Company</label>
             <input
               ref={firstInputRef}
               id="company"
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-border bg-surface text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ color: "var(--text)" }}
               maxLength={200}
+              aria-invalid={Boolean(errors.company)}
+              aria-describedby={errors.company ? "company-error" : undefined}
               required
             />
             {errors.company && (
-              <p className="mt-1 text-xs" style={{ color: "var(--danger)" }}>
+              <p id="company-error" className="field-error" role="alert">
                 {errors.company}
               </p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium mb-1" style={{ color: "var(--text)" }}>
-              Role *
-            </label>
+          <div className="form-field">
+            <label htmlFor="role">Role</label>
             <input
               id="role"
               type="text"
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-border bg-surface text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ color: "var(--text)" }}
               maxLength={200}
+              aria-invalid={Boolean(errors.role)}
+              aria-describedby={errors.role ? "role-error" : undefined}
               required
             />
             {errors.role && (
-              <p className="mt-1 text-xs" style={{ color: "var(--danger)" }}>
+              <p id="role-error" className="field-error" role="alert">
                 {errors.role}
               </p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="appliedAt" className="block text-sm font-medium mb-1" style={{ color: "var(--text)" }}>
-              Applied Date *
-            </label>
+          <div className="form-field">
+            <label htmlFor="appliedAt">Applied date</label>
             <input
               id="appliedAt"
               type="date"
               value={formData.appliedAt}
               onChange={(e) => setFormData({ ...formData, appliedAt: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-border bg-surface text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ color: "var(--text)" }}
+              aria-invalid={Boolean(errors.appliedAt)}
+              aria-describedby={errors.appliedAt ? "appliedAt-error" : undefined}
               required
             />
             {errors.appliedAt && (
-              <p className="mt-1 text-xs" style={{ color: "var(--danger)" }}>
+              <p id="appliedAt-error" className="field-error" role="alert">
                 {errors.appliedAt}
               </p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium mb-1" style={{ color: "var(--text)" }}>
-              Status *
-            </label>
+          <div className="form-field">
+            <label htmlFor="status">Status</label>
             <select
               id="status"
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full px-3 py-2 rounded-md border border-border bg-surface text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ color: "var(--text)" }}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as ApplicationFormData["status"] })}
+              aria-invalid={Boolean(errors.status)}
+              aria-describedby={errors.status ? "status-error" : undefined}
               required
             >
               {statusOptions.map((option) => (
@@ -271,31 +270,18 @@ export function ApplicationFormDrawer({
               ))}
             </select>
             {errors.status && (
-              <p className="mt-1 text-xs" style={{ color: "var(--danger)" }}>
+              <p id="status-error" className="field-error" role="alert">
                 {errors.status}
               </p>
             )}
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-md border border-border bg-surface hover:bg-surface-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ color: "var(--text)" }}
-              disabled={isSubmitting}
-            >
+          <div className="drawer-actions">
+            <button type="button" onClick={onClose} className="button button-secondary" disabled={isSubmitting}>
               Cancel
             </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 rounded-md transition-colors disabled:opacity-50 active:scale-96 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ backgroundColor: "var(--primary)", color: "var(--canvas)", transformOrigin: "center" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--primary-hover)")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--primary)")}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Saving..." : mode === "create" ? "Create" : "Save"}
+            <button type="submit" className="button button-primary" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : mode === "create" ? "Create application" : "Save changes"}
             </button>
           </div>
         </form>

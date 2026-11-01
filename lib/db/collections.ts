@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { Collection, Document } from 'mongodb';
+import type { DbApplication } from './types';
 import { getDb } from './connect';
 
 export async function getUsersCollection(): Promise<Collection<Document>> {
@@ -23,7 +24,7 @@ export async function getVerificationsCollection(): Promise<Collection<Document>
   return db.collection('verification');
 }
 
-export async function getApplicationsCollection(): Promise<Collection<Document>> {
+export async function getApplicationsCollection(): Promise<Collection<Omit<DbApplication, "_id">>> {
   const db = await getDb();
-  return db.collection('applications');
+  return db.collection<Omit<DbApplication, "_id">>('applications');
 }

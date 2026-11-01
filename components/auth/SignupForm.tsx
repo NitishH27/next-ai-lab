@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import PasswordField from "@/components/auth/PasswordField";
 import { validateSignup, type FieldErrors } from "@/lib/auth";
 import { authClient } from "@/lib/auth/client";
 
 export default function SignupForm() {
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +44,7 @@ export default function SignupForm() {
       }
 
       setSuccess(true);
-    } catch (e) {
+    } catch {
       setFormError("Unable to create account.");
     }
   }

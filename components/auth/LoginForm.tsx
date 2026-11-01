@@ -36,7 +36,7 @@ export default function LoginForm() {
       }
 
       router.replace("/dashboard");
-    } catch (e) {
+    } catch {
       setFormError("Invalid email or password.");
     }
   }

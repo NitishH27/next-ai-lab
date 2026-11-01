@@ -2,6 +2,32 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-11-01 — Make application rows clickable
+
+- Rows in the applications grid are now the click target: clicking anywhere on a row opens the edit drawer, and Enter or Space on a focused cell does the same. Removed the Actions column and its Edit button now that the row itself handles editing.
+- Removed the click and selection styling: selected-row and single-cell range fills are transparent, and the cell focus border no longer draws a dark box when a cell is clicked. Keyboard focus instead shows the standard 2px teal ring, inset into the cell.
+- Switched AG Grid to its legacy CSS theming (`theme="legacy"`) so the existing `ag-theme-jobflow` token block is actually applied. The default Theming API had been shadowing those tokens, which is why rows rendered at 25px, headers at 26px, and hover/selection used AG Grid's default colours instead of the Ocean Depths palette.
+- Updated `SYSTEM_DESIGN.md` so the row standard says the full row is the click target and rows get no pressed or selected fill.
+- Validation: `npx tsc --noEmit` and `npm run build` passed; `npm run lint` reports 0 errors (12 pre-existing warnings in the index migration). A temporary headless-Chrome harness confirmed the grid resolved the Ocean Depths tokens, clicking a row opened it with no selected row or focus box, and Enter on a focused cell opened the row with the 2px teal focus ring.
+
+## 2026-11-01 — Space out dates and refine the applications grid
+
+- Changed the date format from the stuck `DDMMMYY` output to `DD MMM YY` (for example `01 Oct 26`) and render each date as a `<time>` element with a machine-readable `dateTime`, using tabular numerals so the columns align.
+- Rebuilt the grid setup as a typed module-level `ColDef<ApplicationRow>[]` with a named renderer for every column (company, role, applied date, status, status changed), a shared cell wrapper, stable `getRowId` values, and a header tooltip where the label needs explanation.
+- Upgraded the grid theme with 56px rows, a 48px header, 20px horizontal padding, quieter uppercase headers with hover feedback, visible column-resize handles, a thin internal scrollbar, and truncation that keeps the full value in the native title. Row hover stays the neutral `surface-hover` wash, selection stays transparent, and a small row-end chevron appears on hover or keyboard focus to signal that the row opens.
+- Matched the loading skeleton to the new row rhythm and disabled the new transitions under `prefers-reduced-motion`.
+- Validation: `npx tsc --noEmit`, `npm run lint` (0 errors, 12 pre-existing migration warnings), and `npm run build` passed. A temporary headless-Chrome harness confirmed the rendered dates (`01 Oct 26`), 56px rows, 48px header, 20px cell padding, transparent click state, and the keyboard focus ring.
+
+## 2026-11-01 — Quiet the interaction styling
+
+- Reworked interactive states around one rule: hover uses a neutral wash, focus is a ring only, and solid navy is reserved for primary actions and the brand tile. Added `surface-hover`, `surface-sunken`, and `border-strong` tokens and removed the seafoam hover fills from the sidebar, form fields, password toggle, and applications grid.
+- Styled the previously unstyled workspace sign-out control (account label, sign-out text, collapsed icon and flyout), grouped the sidebar footer behind a divider, and replaced the translucent blurred workspace header with a solid surface.
+- Refined the auth card and buttons: 16px card radius, no card shadow, a 0.96 press scale, and a defined `field-success` style. Stat cards and the trend card now use a 1px border without a shadow, and KPI numerals are calmer.
+- Rebuilt the applications toolbar, loading skeleton, empty state, status cells, and drawer with shared classes instead of dead Tailwind colour utilities and inline mouse handlers. The drawer now animates, locks background scroll, traps and restores focus, and uses 8px control radii and a 40px close target.
+- Stopped rendering an empty dashboard notice and corrected its copy; typed the applications collection so the repository, serialization, and actions no longer rely on `any`.
+- Updated `SYSTEM_DESIGN.md` with the interaction-state standard and the new colour tokens.
+- Validation: `npx tsc --noEmit` passed, `npm run lint` now reports 0 errors (12 pre-existing warnings in the index migration), and `npm run build` passed. The auth screen was rendered in headless Chrome at 1440×1000 and 390×844 and checked through computed styles and geometry: 460px card with 16px radius and no shadow, 48px inputs and buttons, a 2px teal focus ring, neutral hover, and no horizontal overflow. Screenshots could not be visually inspected by this agent, and the applications and dashboard screens were not rendered because they require a signed-in session.
+
 ## 2026-10-31 — Add Beginner-Friendly Project Guide
 
 - Added `detailedInfo.md`, a complete beginner's walkthrough of what Next.js is, how this app uses it, file-based routing, Server vs Client Components, frontend/backend boundaries, Better Auth signup/login/verification flows, MongoDB concepts, the cached connection chain, schema and indexes, end-to-end data flows, validation, environment setup, the folder map, and UI/accessibility standards.

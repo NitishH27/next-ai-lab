@@ -51,8 +51,8 @@ export async function createApplicationAction(data: {
     revalidatePath("/applications");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
-    if (error.message === "Applied date cannot be in the future") {
+  } catch (error) {
+    if (error instanceof Error && error.message === "Applied date cannot be in the future") {
       return { error: error.message };
     }
     return { error: "Failed to create application" };
@@ -74,7 +74,7 @@ export async function updateApplicationAction(
       return { error: "Unauthorized" };
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (data.company !== undefined) updateData.company = data.company;
     if (data.role !== undefined) updateData.role = data.role;
     if (data.appliedAt !== undefined) {
@@ -88,11 +88,16 @@ export async function updateApplicationAction(
       return { error };
     }
 
-    const repoUpdate: any = {};
+    const repoUpdate: Partial<{
+      company: string;
+      role: string;
+      appliedAt: Date;
+      status: ApplicationStatus;
+    }> = {};
     if (parsed.data.company !== undefined) repoUpdate.company = parsed.data.company;
     if (parsed.data.role !== undefined) repoUpdate.role = parsed.data.role;
     if (parsed.data.appliedAt !== undefined) repoUpdate.appliedAt = toDateOnly(data.appliedAt!);
-    if (parsed.data.status !== undefined) repoUpdate.status = parsed.data.status as ApplicationStatus;
+    if (parsed.data.status !== undefined) repoUpdate.status = parsed.data.status;
 
     const result = await updateApplication(session.user.id, id, repoUpdate);
     if (!result) {
@@ -102,8 +107,8 @@ export async function updateApplicationAction(
     revalidatePath("/applications");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
-    if (error.message === "Applied date cannot be in the future") {
+  } catch (error) {
+    if (error instanceof Error && error.message === "Applied date cannot be in the future") {
       return { error: error.message };
     }
     return { error: "Failed to update application" };
@@ -121,7 +126,7 @@ export async function getApplicationsAction() {
     const apps = await listApplications(session.user.id);
     
     // Serialize
-    const serialized = apps.map((app: any) => ({
+    const serialized = apps.map((app) => ({
       id: app._id.toString(),
       company: app.company,
       role: app.role,
@@ -131,7 +136,7 @@ export async function getApplicationsAction() {
     }));
     
     return { data: serialized };
-  } catch (error) {
+  } catch {
     return { error: "Failed to fetch applications", data: [] };
   }
 }

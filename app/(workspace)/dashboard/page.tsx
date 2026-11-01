@@ -42,9 +42,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="dashboard-shell">
-      <p className="dashboard-notice" role="note">
-        {isEmpty ? "No applications yet. Application tracking is coming next." : null}
-      </p>
+      {isEmpty ? (
+        <p className="dashboard-notice" role="note">
+          No applications yet. Add your first one from the Applications page.
+        </p>
+      ) : null}
       <ApplicationSummary summary={summary} />
       <ApplicationTrendChart data={weekly} />
     </div>

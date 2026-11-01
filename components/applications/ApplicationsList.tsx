@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AgGridReact } from "ag-grid-react";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import type {
+  CellKeyDownEvent,
+  ColDef,
+  GetRowIdParams,
+  ICellRendererParams,
+  RowClickedEvent,
+} from "ag-grid-community";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
 import dayjs from "dayjs";
 import { Briefcase, Plus, Search } from "lucide-react";
 import { getApplicationsAction } from "@/app/(workspace)/applications/actions";
+import type { ApplicationStatus } from "@/lib/applications";
 import { ApplicationFormDrawer } from "./ApplicationFormDrawer";
 
 // Register AG Grid modules
@@ -15,89 +22,118 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import "ag-grid-community/styles/ag-grid.css";
 import "./applications-grid.css";
 
-type ApplicationRow = {
+export type ApplicationRow = {
   id: string;
   company: string;
   role: string;
   appliedAt: string;
-  status: string;
+  status: ApplicationStatus;
   statusChangedAt: string;
 };
 
-function formatDate(dateStr: string) {
-  return dayjs(dateStr).format("DDMMMYY");
+const DATE_FORMAT = "DD MMM YY";
+
+function Cell({ children }: { children: ReactNode }) {
+  return <div className="app-cell">{children}</div>;
 }
 
-function CompanyCellRenderer(props: ICellRendererParams<ApplicationRow>) {
+function DateValue({ value }: { value: string }) {
   return (
-    <div style={{ padding: "16px 20px", width: "100%" }}>
-      <div style={{ color: "var(--text)", fontWeight: 500, fontSize: "14px" }}>
-        {props.value}
-      </div>
-    </div>
+    <time className="app-cell-date" dateTime={dayjs(value).format("YYYY-MM-DD")}>
+      {dayjs(value).format(DATE_FORMAT)}
+    </time>
   );
 }
 
-function RoleCellRenderer(props: ICellRendererParams<ApplicationRow>) {
+function CompanyCellRenderer({ value }: ICellRendererParams<ApplicationRow>) {
   return (
-    <div style={{ padding: "16px 20px", width: "100%" }}>
-      <div style={{ color: "var(--text)", fontSize: "14px" }}>
-        {props.value}
-      </div>
-    </div>
-  );
-}
-
-function DateCellRenderer(props: ICellRendererParams<ApplicationRow>) {
-  return (
-    <div style={{ padding: "16px 20px", width: "100%" }}>
-      <div style={{ color: "var(--text)", fontSize: "13px", fontVariantNumeric: "tabular-nums" }}>
-        {formatDate(props.value)}
-      </div>
-    </div>
-  );
-}
-
-function StatusCellRenderer(props: ICellRendererParams<ApplicationRow>) {
-  const status = props.value as string;
-  const statusColors: Record<string, string> = {
-    applied: "var(--text-muted)",
-    screening: "var(--accent-text)",
-    interview: "var(--success)",
-    offer: "var(--accent)",
-    rejected: "var(--danger)",
-    withdrawn: "var(--text-muted)",
-  };
-  return (
-    <div style={{ padding: "16px 20px", width: "100%" }}>
-      <span
-        style={{
-          color: statusColors[status] || "var(--text)",
-          textTransform: "capitalize",
-          fontWeight: 500,
-          fontSize: "13px",
-        }}
-      >
-        {status}
+    <Cell>
+      <span className="app-cell-text app-cell-text-strong" title={value}>
+        {value}
       </span>
-    </div>
+    </Cell>
   );
 }
 
-function ActionsCellRenderer(props: ICellRendererParams<ApplicationRow>) {
-  const onEdit = (props as any).context?.onEdit;
+function RoleCellRenderer({ value }: ICellRendererParams<ApplicationRow>) {
   return (
-    <div style={{ padding: "16px 20px", width: "100%", display: "flex", alignItems: "center" }}>
-      <button
-        type="button"
-        onClick={() => onEdit?.(props.data)}
-        className="px-3 py-1.5 text-xs rounded-md border border-border bg-surface hover:bg-surface-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-        style={{ color: "var(--text)" }}
-      >
-        Edit
-      </button>
-    </div>
+    <Cell>
+      <span className="app-cell-text" title={value}>
+        {value}
+      </span>
+    </Cell>
   );
+}
+
+function AppliedDateCellRenderer({ value }: ICellRendererParams<ApplicationRow>) {
+  return (
+    <Cell>
+      <DateValue value={value} />
+    </Cell>
+  );
+}
+
+function StatusCellRenderer({ value }: ICellRendererParams<ApplicationRow>) {
+  const status = value as ApplicationStatus;
+  return (
+    <Cell>
+      <span className={`app-status app-status-${status}`}>{status}</span>
+    </Cell>
+  );
+}
+
+function StatusChangedCellRenderer({ value }: ICellRendererParams<ApplicationRow>) {
+  return (
+    <Cell>
+      <DateValue value={value} />
+    </Cell>
+  );
+}
+
+export const applicationColumnDefs: ColDef<ApplicationRow>[] = [
+  {
+    field: "company",
+    headerName: "Company",
+    flex: 1,
+    minWidth: 180,
+    cellRenderer: CompanyCellRenderer,
+  },
+  {
+    field: "role",
+    headerName: "Role",
+    flex: 1,
+    minWidth: 200,
+    cellRenderer: RoleCellRenderer,
+  },
+  {
+    field: "appliedAt",
+    headerName: "Applied",
+    width: 132,
+    cellRenderer: AppliedDateCellRenderer,
+  },
+  {
+    field: "status",
+    headerName: "Status",
+    width: 148,
+    cellRenderer: StatusCellRenderer,
+  },
+  {
+    field: "statusChangedAt",
+    headerName: "Status changed",
+    headerTooltip: "Date the status last changed",
+    width: 168,
+    cellRenderer: StatusChangedCellRenderer,
+  },
+];
+
+export const applicationDefaultColDef: ColDef<ApplicationRow> = {
+  sortable: true,
+  filter: false,
+  resizable: true,
+};
+
+export function getApplicationRowId(params: GetRowIdParams<ApplicationRow>) {
+  return params.data.id;
 }
 
 export function ApplicationsList() {
@@ -106,19 +142,41 @@ export function ApplicationsList() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"create" | "edit">("create");
-  const [editingData, setEditingData] = useState<any>(null);
+  const [editingData, setEditingData] = useState<{
+    id: string;
+    company: string;
+    role: string;
+    appliedAt: string;
+    status: ApplicationStatus;
+  } | null>(null);
 
   const fetchApplications = async () => {
-    setIsLoading(true);
     const result = await getApplicationsAction();
     if (result.data) {
       setApplications(result.data);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchApplications();
+    let active = true;
+
+    getApplicationsAction()
+      .then((result) => {
+        if (!active) return;
+        if (result.data) {
+          setApplications(result.data);
+        }
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (active) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleAdd = () => {
@@ -148,49 +206,21 @@ export function ApplicationsList() {
     fetchApplications();
   };
 
-  const columnDefs = useMemo<ColDef<ApplicationRow>[]>(
-    () => [
-      { field: "company", headerName: "Company", flex: 1, minWidth: 180, cellRenderer: CompanyCellRenderer },
-      { field: "role", headerName: "Role", flex: 1, minWidth: 180, cellRenderer: RoleCellRenderer },
-      {
-        field: "appliedAt",
-        headerName: "Applied",
-        width: 140,
-        cellRenderer: DateCellRenderer,
-      },
-      {
-        field: "status",
-        headerName: "Status",
-        width: 140,
-        cellRenderer: StatusCellRenderer,
-      },
-      {
-        field: "statusChangedAt",
-        headerName: "Status changed",
-        width: 160,
-        cellRenderer: DateCellRenderer,
-      },
-      {
-        headerName: "Actions",
-        width: 120,
-        cellRenderer: ActionsCellRenderer,
-        sortable: false,
-        filter: false,
-      },
-    ],
-    []
-  );
+  const handleRowClick = (event: RowClickedEvent<ApplicationRow>) => {
+    if (event.data) {
+      handleEdit(event.data);
+    }
+  };
 
-  const defaultColDef = useMemo<ColDef>(
-    () => ({
-      sortable: true,
-      filter: false,
-      resizable: true,
-    }),
-    []
-  );
-
-  const context = useMemo(() => ({ onEdit: handleEdit }), []);
+  const handleRowKeyDown = (event: CellKeyDownEvent<ApplicationRow>) => {
+    const keyEvent = event.event;
+    if (keyEvent instanceof KeyboardEvent && (keyEvent.key === "Enter" || keyEvent.key === " ")) {
+      keyEvent.preventDefault();
+      if (event.data) {
+        handleEdit(event.data);
+      }
+    }
+  };
 
   const filteredData = useMemo(() => {
     if (!searchText) return applications;
@@ -204,89 +234,83 @@ export function ApplicationsList() {
   }, [applications, searchText]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-            style={{ color: "var(--text-muted)" }}
-            aria-hidden="true"
-          />
+    <div className="applications">
+      <div className="applications-toolbar">
+        <div className="applications-search">
+          <label className="visually-hidden" htmlFor="applications-search">
+            Search applications
+          </label>
+          <Search className="applications-search-icon" size={16} aria-hidden="true" />
           <input
-            type="text"
+            id="applications-search"
+            type="search"
             placeholder="Search applications..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-surface text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-            style={{ color: "var(--text)" }}
           />
         </div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-          style={{ backgroundColor: "var(--primary)", color: "var(--canvas)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--primary-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--primary)")}
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          <span style={{ color: "var(--canvas)" }}>Add new application</span>
+        <button type="button" onClick={handleAdd} className="button button-primary button-sm">
+          <Plus size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+          Add new application
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 border border-border rounded-xl bg-surface">
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Loading...
-          </p>
+        <div className="applications-loading" role="status" aria-label="Loading applications">
+          <span className="visually-hidden">Loading applications…</span>
+          {[0, 1, 2].map((row) => (
+            <div className="applications-skeleton-row" key={row}>
+              <span className="applications-skeleton-bar" />
+              <span className="applications-skeleton-bar" />
+              <span className="applications-skeleton-bar" />
+              <span className="applications-skeleton-bar" />
+              <span className="applications-skeleton-bar" />
+            </div>
+          ))}
         </div>
       ) : filteredData.length === 0 ? (
-        <div className="text-center py-12 border border-border rounded-xl bg-surface">
-          <Briefcase
-            className="mx-auto h-12 w-12 mb-4"
-            style={{ color: "var(--text-muted)" }}
-            aria-hidden="true"
-          />
-          <h3 className="text-lg font-medium mb-2" style={{ color: "var(--text)" }}>
-            {searchText ? "No applications found" : "No applications yet"}
-          </h3>
-          <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-            {searchText ? "Try adjusting your search." : "Get started by adding your first application."}
+        <div className="applications-empty">
+          <span className="applications-empty-icon">
+            <Briefcase size={22} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+          </span>
+          <h3>{searchText ? "No applications found" : "No applications yet"}</h3>
+          <p>
+            {searchText
+              ? "Try a different company, role, or status."
+              : "Add your first application to start tracking progress."}
           </p>
           {!searchText && (
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              style={{ backgroundColor: "var(--primary)", color: "var(--canvas)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--primary-hover)")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--primary)")}
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              <span style={{ color: "var(--canvas)" }}>Add new application</span>
+            <button type="button" onClick={handleAdd} className="button button-primary button-sm">
+              <Plus size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+              Add new application
             </button>
           )}
         </div>
       ) : (
         <div className="ag-theme-jobflow" style={{ height: 520, width: "100%" }}>
           <AgGridReact
+            // The grid is themed through applications-grid.css, so opt out of the default theme.
+            theme="legacy"
             rowData={filteredData}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            context={context}
+            columnDefs={applicationColumnDefs}
+            defaultColDef={applicationDefaultColDef}
+            getRowId={getApplicationRowId}
+            onRowClicked={handleRowClick}
+            onCellKeyDown={handleRowKeyDown}
             pagination={false}
             suppressCellFocus={false}
           />
         </div>
       )}
 
-      <ApplicationFormDrawer
-        isOpen={isDrawerOpen}
-        onClose={handleDrawerClose}
-        mode={drawerMode}
-        initialData={editingData}
-        onSuccess={handleDrawerSuccess}
-      />
+      {isDrawerOpen ? (
+        <ApplicationFormDrawer
+          onClose={handleDrawerClose}
+          mode={drawerMode}
+          initialData={editingData ?? undefined}
+          onSuccess={handleDrawerSuccess}
+        />
+      ) : null}
     </div>
   );
 }

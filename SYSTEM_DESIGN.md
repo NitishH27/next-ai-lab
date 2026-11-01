@@ -1,6 +1,6 @@
 # System Design
 
-This document defines the visual and interaction standards for new UI and components. The visual direction follows the selected **Ocean Depths** theme. Apply these rules consistently; update this file when the product adopts a different design direction. The app currently contains the default Next.js starter screen, so these are the target product standards rather than styles already implemented in the app.
+This document defines the visual and interaction standards for new UI and components. The visual direction follows the selected **Ocean Depths** theme. Apply these rules consistently; update this file when the product adopts a different design direction. The signed-in workspace and the authentication screens already follow these standards.
 
 ## Visual Direction
 
@@ -14,10 +14,13 @@ Use semantic tokens rather than placing raw color values throughout components.
 | --- | --- | --- |
 | `canvas` | `#F1FAEE` | Cream page background |
 | `surface` | `#FFFFFF` | Cards, menus, dialogs, and form fields |
-| `surface-accent` | `#A8DADC` | Quiet highlights and selected backgrounds |
+| `surface-hover` | `#F3F8F6` | Neutral hover wash for rows, links, and quiet controls |
+| `surface-sunken` | `#F7FAF8` | Table headers and low-emphasis bands |
+| `surface-accent` | `#A8DADC` | Decorative seafoam only, never a hover or focus fill |
 | `text` | `#1A2332` | Deep navy main text and headings |
 | `text-muted` | `#43515E` | Secondary text and descriptions |
 | `border` | `#D7E4E2` | Dividers and control borders |
+| `border-strong` | `#BECFCD` | Hovered control borders |
 | `primary` | `#1A2332` | Main actions and selected states |
 | `primary-hover` | `#243246` | Hover and pressed primary action |
 | `accent` | `#2D8B8B` | Teal icons, indicators, and decorative emphasis |
@@ -55,6 +58,17 @@ For dark surfaces, use Deep Navy `#1A2332` for the canvas, a slightly lighter na
 - **Statuses and badges:** Use short text labels such as “Applied” or “Interview”; pair color with text and never use color alone.
 - **Dialogs and menus:** Support keyboard operation, move focus into an opened dialog, keep focus contained while it is open, and return focus to its trigger when closed.
 - **Feedback states:** Design loading, empty, success, and error states for data-driven components. Explain what happened and provide a useful next step where possible.
+
+## Interaction States
+
+Keep feedback quiet and consistent; a click should not light up the whole surface.
+
+- **Hover:** use the neutral `surface-hover` wash or a `border-strong` border. Never fill a control with seafoam or teal on hover.
+- **Selected:** use a 6–9% navy wash with a 2px teal rail for navigation. Reserve solid navy fills for primary actions and the brand tile.
+- **Focus:** show a 2px `focus` ring with a 2px offset. Do not add a background change on focus.
+- **Pressed:** scale to `0.96` over `150ms` ease-out; never scale a disabled control.
+- **Rows and list items:** use the neutral hover wash only, and make the full row the click target when it opens a record. Do not add a pressed or selected fill to a row. Status stays on the row's dot and text label.
+- **Elevation:** cards use a 1px border without a shadow. Shadows are reserved for overlays such as the drawer and tooltips.
 
 ## Accessibility and Motion
 

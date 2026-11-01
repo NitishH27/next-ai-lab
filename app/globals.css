@@ -1,12 +1,16 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --canvas: #f1faee;
   --surface: #ffffff;
+  --surface-hover: #f3f8f6;
+  --surface-sunken: #f7faf8;
   --surface-accent: #a8dadc;
   --text: #1a2332;
   --text-muted: #43515e;
   --border: #d7e4e2;
+  --border-strong: #becfcd;
   --primary: #1a2332;
   --primary-hover: #243246;
   --accent: #2d8b8b;
@@ -33,24 +37,32 @@ body {
   font-family: "DejaVu Sans", Arial, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
 button,
 a,
-input {
+input,
+select,
+textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .route-loading {
@@ -157,6 +169,7 @@ input:focus-visible {
 }
 
 .workspace-nav-link {
+  position: relative;
   display: flex;
   min-height: 2.75rem;
   align-items: center;
@@ -167,7 +180,7 @@ input:focus-visible {
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
-  transition: background-color 150ms ease-out, color 150ms ease-out;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
 }
 
 .workspace-sidebar.is-collapsed .workspace-nav-link {
@@ -180,9 +193,23 @@ input:focus-visible {
 }
 
 .workspace-nav-link.is-current {
-  background: var(--primary);
-  color: var(--canvas);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--text);
   font-weight: 600;
+}
+
+.workspace-nav-link.is-current::before {
+  position: absolute;
+  inset-block: 0.875rem;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  content: "";
+}
+
+.workspace-sidebar.is-collapsed .workspace-nav-link.is-current::before {
+  display: none;
 }
 
 .workspace-nav-label {
@@ -193,7 +220,60 @@ input:focus-visible {
 }
 
 .workspace-sidebar-footer {
+  display: grid;
   flex: 0 0 auto;
+  gap: 0.25rem;
+  padding-block-start: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.workspace-signout {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: start;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.workspace-sidebar.is-collapsed .workspace-signout {
+  width: 2.75rem;
+  justify-content: center;
+  margin-inline: auto;
+  padding: 0;
+}
+
+.workspace-signout svg {
+  flex: 0 0 auto;
+}
+
+.workspace-signout-label {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.workspace-signout-user {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-signout-text {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .workspace-collapse {
@@ -213,7 +293,7 @@ input:focus-visible {
   font-size: 0.875rem;
   font-weight: 500;
   text-align: start;
-  transition: background-color 150ms ease-out, color 150ms ease-out, scale 150ms ease-out;
+  transition: background-color 120ms ease-out, color 120ms ease-out, scale 150ms ease-out;
 }
 
 .workspace-sidebar.is-collapsed .workspace-collapse {
@@ -272,8 +352,7 @@ input:focus-visible {
   inset-block-start: 0;
   padding-block: 1rem;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
 }
 
 .workspace-header-inner,
@@ -320,17 +399,6 @@ input:focus-visible {
 .workspace-sidebar button:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-  background: var(--surface-accent);
-  color: var(--text);
-}
-
-.workspace-nav-link.is-current:focus-visible {
-  background: var(--primary-hover);
-  color: var(--canvas);
-}
-
-.workspace-sidebar .workspace-brand:focus-visible {
-  background: var(--primary-hover);
 }
 
 @media (hover: hover) {
@@ -339,26 +407,28 @@ input:focus-visible {
   }
 
   .workspace-nav-link:hover {
-    background: var(--surface-accent);
+    background: var(--surface-hover);
     color: var(--text);
   }
 
   .workspace-nav-link.is-current:hover {
-    background: var(--primary-hover);
-    color: var(--canvas);
+    background: color-mix(in srgb, var(--primary) 9%, transparent);
   }
 
+  .workspace-signout:hover,
   .workspace-collapse:hover {
-    background: var(--surface-accent);
+    background: var(--surface-hover);
     color: var(--text);
   }
 
+  .workspace-sidebar.is-collapsed .workspace-signout:hover .workspace-collapse-flyout,
   .workspace-sidebar.is-collapsed .workspace-collapse:hover .workspace-collapse-flyout {
     visibility: visible;
     opacity: 1;
   }
 }
 
+.workspace-sidebar.is-collapsed .workspace-signout:focus-visible .workspace-collapse-flyout,
 .workspace-sidebar.is-collapsed .workspace-collapse:focus-visible .workspace-collapse-flyout {
   visibility: visible;
   opacity: 1;
@@ -536,9 +606,8 @@ input:focus-visible {
   width: min(100%, 460px);
   padding: 32px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 12px 32px rgb(26 35 50 / 8%);
 }
 
 .auth-form-heading h2 {
@@ -577,7 +646,8 @@ input:focus-visible {
   font-weight: 600;
 }
 
-.form-field input {
+.form-field input,
+.form-field select {
   width: 100%;
   min-height: 48px;
   padding: 11px 12px;
@@ -585,15 +655,27 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
-  transition: border-color 150ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: border-color 120ms ease-out;
 }
 
-.form-field input:hover {
-  border-color: var(--accent);
+.form-field select {
+  cursor: pointer;
 }
 
-.form-field input[aria-invalid="true"] {
+@media (hover: hover) {
+  .form-field input:hover,
+  .form-field select:hover {
+    border-color: var(--border-strong);
+  }
+}
+
+.form-field input[aria-invalid="true"],
+.form-field select[aria-invalid="true"] {
   border-color: var(--danger);
+}
+
+.form-field input::placeholder {
+  color: var(--text-muted);
 }
 
 .password-control {
@@ -622,10 +704,14 @@ input:focus-visible {
   font-size: 0.75rem;
   font-weight: 700;
   transform: translateY(-50%);
+  transition: background-color 120ms ease-out, color 120ms ease-out;
 }
 
-.password-visibility:hover {
-  background: rgb(168 218 220 / 35%);
+@media (hover: hover) {
+  .password-visibility:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
 }
 
 .password-visibility svg {
@@ -644,32 +730,68 @@ input:focus-visible {
   font-size: 0.8125rem;
 }
 
+.field-success {
+  margin: 0;
+  color: var(--success);
+  font-size: 0.8125rem;
+}
+
 .button {
   display: inline-flex;
   min-height: 48px;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 10px 16px;
   cursor: pointer;
   font-size: 0.9375rem;
-  font-weight: 700;
-  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), border-color 150ms cubic-bezier(0.2, 0, 0, 1), transform 150ms cubic-bezier(0.2, 0, 0, 1);
+  font-weight: 600;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, scale 150ms ease-out;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.button:not(:disabled):active {
+  scale: 0.96;
+}
+
+.button-sm {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
 }
 
 .button-primary {
-  margin-top: 8px;
   background: var(--primary);
-  color: #f1faee;
+  color: var(--canvas);
 }
 
-.button-primary:hover {
-  background: var(--primary-hover);
+.auth-form .button-primary {
+  margin-top: 8px;
 }
 
-.button-primary:active {
-  transform: scale(0.98);
+@media (hover: hover) {
+  .button-primary:not(:disabled):hover {
+    background: var(--primary-hover);
+  }
+}
+
+.button-secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+@media (hover: hover) {
+  .button-secondary:not(:disabled):hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+  }
 }
 
 .button-google {
@@ -712,20 +834,24 @@ input:focus-visible {
   text-underline-offset: 3px;
 }
 
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
 .dashboard-shell {
   container-name: dashboard;
   container-type: inline-size;
   display: grid;
-  gap: 16px;
+  gap: 24px;
   width: 100%;
 }
 
 .dashboard-notice {
   margin: 0;
-  padding: 8px 12px;
+  padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--surface-sunken);
   color: var(--text-muted);
   font-size: 0.875rem;
 }
@@ -750,7 +876,6 @@ input:focus-visible {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  box-shadow: 0 4px 12px rgb(26 35 50 / 6%);
   --tone: var(--text-muted);
 }
 
@@ -801,9 +926,9 @@ input:focus-visible {
 .summary-card-value {
   margin: 0;
   color: var(--text);
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1.05;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -862,7 +987,6 @@ input:focus-visible {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  box-shadow: 0 4px 12px rgb(26 35 50 / 6%);
 }
 
 .dashboard-chart-header {
@@ -998,6 +1122,8 @@ input:focus-visible {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 
@@ -1006,7 +1132,8 @@ input:focus-visible {
     transition: none;
   }
 
-  .workspace-collapse:not(:disabled):active {
+  .workspace-collapse:not(:disabled):active,
+  .button:not(:disabled):active {
     scale: none;
   }
 }
