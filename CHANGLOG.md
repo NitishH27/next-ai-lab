@@ -2,6 +2,28 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-11-03 — Add PRD-007.1 for profile section CRUD
+
+- Added PRD-007.1 to `PRD.md`: a focused child requirement for the `/profile` section where signed-in users create, view, edit, and delete personal details, professional details, and job preferences.
+- Defined the create/read/update/delete lifecycle: the first save upserts one lazily created profile; section-level saves with no autosave; local tag/entry removal until Save; and a confirmed “Delete profile data” action that removes the profile document (and any future resume file) while keeping the Better Auth account, name, sessions, and applications.
+- Specified the persistent top-bar Profile action and sidebar entry, distinct `circle-user-round`/`briefcase` icons, owner-only session-derived reads and writes, PRD-007 validation reuse, empty/loading/error/success states, responsive/accessibility rules, tests, and documentation updates.
+- Scoped resume storage, account security, account deletion, matching, and public profiles out of this phase. PRD-007 remains the umbrella and keeps the resume phase.
+- Validation: documentation-only change; no app code, routes, dependencies, or runtime behavior changed, so tests, lint, and build were not re-run.
+
+## 2026-11-03 — Move the account profile area into the workspace top bar
+
+- Moved the signed-in account display and sign-out control from the sidebar footer into a persistent top-bar profile panel. The trigger shows initials, name, and email on desktop, keeps the avatar-only control on narrow screens, and opens a panel with the identity summary, verified-email state, and sign-out.
+- Added outside-press, Escape, and focus-leave handling; Escape returns focus to the trigger. Removed the duplicate sidebar sign-out and its CSS so the sidebar keeps only navigation and the collapse control.
+- Aligned the header title/description and account trigger on one row using the Ocean Depths tokens, an 8px control radius, a 12px popover radius, 44px targets, 0.96 press scale, reduced-motion overrides, and consistent hover/focus states. Amended PRD-007 so the top-bar account panel is the permanent Profile entry point when `/profile` lands.
+- Validation: headless Chrome confirmed the header alignment, 8px popover gap, 44px mobile trigger, and no horizontal overflow at 1280px, 375px, and 320px. `npm test` (30 tests), `npm run lint` (0 errors; 12 pre-existing migration warnings), and `npm run build` pass.
+
+## 2026-11-03 — Add the profile, resume, and job preferences PRD
+
+- Added PRD-007 to `PRD.md`: a `/profile` workspace section with editable name and professional details, skills, work experience, education, job preferences, and a single PDF/DOCX resume stored in MongoDB GridFS.
+- Documented the new `profiles` collection and unique `userId` index, the GridFS `resumes.files`/`resumes.chunks` collections, the PRD-005 collection-count amendment, server actions and owner-only resume routes, validation and 4 MB upload limits, security and serialization rules, responsive/accessibility requirements, tests, and documentation updates.
+- Chose recommended defaults for scope: one lazily created profile per user, initials-only avatars, one active resume with no parsing or versions, and job preferences stored for future matching without changing the dashboard.
+- Validation: documentation-only change; no app code, routes, dependencies, or runtime behavior changed, so tests, lint, and build were not re-run.
+
 ## 2026-11-01 — Make application rows clickable
 
 - Rows in the applications grid are now the click target: clicking anywhere on a row opens the edit drawer, and Enter or Space on a focused cell does the same. Removed the Actions column and its Edit button now that the row itself handles editing.

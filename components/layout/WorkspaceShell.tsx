@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
   type FocusEvent,
@@ -11,6 +13,8 @@ import {
   type ReactNode,
 } from "react";
 import {
+  BadgeCheck,
+  ChevronDown,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
@@ -62,14 +66,37 @@ function getTooltipPosition(element: HTMLElement, label: string): NavTooltip {
 
 type WorkspaceShellProps = {
   children: ReactNode;
-  session?: { user?: { name?: string | null; email?: string | null } } | null;
+  session?: {
+    user?: {
+      name?: string | null;
+      email?: string | null;
+      emailVerified?: boolean | null;
+    };
+  } | null;
 };
+
+function getInitials(label: string) {
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return "A";
+  }
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
 
 export default function WorkspaceShell({ children, session }: WorkspaceShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAccountOpen, setAccountOpen] = useState(false);
   const [navTooltip, setNavTooltip] = useState<NavTooltip | null>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
   const isCompactViewport = useSyncExternalStore(
     subscribeToCompact,
     getCompactSnapshot,
@@ -81,6 +108,48 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
 
   const user = session?.user;
   const userLabel = user?.name || user?.email || "Account";
+  const userEmail = user?.email ?? null;
+  const initials = getInitials(userLabel);
+  const isEmailVerified = Boolean(user?.emailVerified);
+
+  useEffect(() => {
+    if (!isAccountOpen) {
+      return;
+    }
+
+    function closeOnOutsidePress(event: globalThis.PointerEvent) {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAccountOpen(false);
+        accountButtonRef.current?.focus();
+      }
+    }
+
+    function closeOnFocusLeave(event: Event) {
+      if (
+        event.target instanceof Node &&
+        accountRef.current &&
+        !accountRef.current.contains(event.target)
+      ) {
+        setAccountOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("focusin", closeOnFocusLeave);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("focusin", closeOnFocusLeave);
+    };
+  }, [isAccountOpen]);
 
   function toggleSidebar() {
     setNavTooltip(null);
@@ -88,6 +157,8 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
   }
 
   async function handleSignOut() {
+    setAccountOpen(false);
+
     try {
       await (authClient as { signOut: () => Promise<unknown> }).signOut();
     } catch {
@@ -168,27 +239,8 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
             })}
           </ul>
         </nav>
-        <div className="workspace-sidebar-footer">
-          <button
-            type="button"
-            className="workspace-signout"
-            onClick={handleSignOut}
-            aria-label={isCollapsed ? "Sign out" : undefined}
-            title={isCollapsed ? "Sign out" : undefined}
-          >
-            <LogOut size={20} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
-            {isCollapsed ? (
-              <span className="workspace-flyout workspace-collapse-flyout" aria-hidden="true">
-                Sign out
-              </span>
-            ) : (
-              <span className="workspace-signout-label">
-                <span className="workspace-signout-user">{userLabel}</span>
-                <span className="workspace-signout-text">Sign out</span>
-              </span>
-            )}
-          </button>
-          {!isCompactViewport && (
+        {!isCompactViewport ? (
+          <div className="workspace-sidebar-footer">
             <button
               type="button"
               className="workspace-collapse"
@@ -220,14 +272,100 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
                 <span className="workspace-collapse-label">Collapse sidebar</span>
               )}
             </button>
-          )}
-        </div>
+          </div>
+        ) : null}
       </aside>
       <div className="workspace-main">
         <header className="workspace-header">
           <div className="workspace-header-inner">
-            <h1>{title}</h1>
-            {page?.description ? <p>{page.description}</p> : null}
+            <div className="workspace-header-copy">
+              <h1>{title}</h1>
+              {page?.description ? <p>{page.description}</p> : null}
+            </div>
+            <div className="workspace-account" ref={accountRef}>
+              <button
+                ref={accountButtonRef}
+                type="button"
+                className="workspace-account-trigger"
+                aria-expanded={isAccountOpen}
+                aria-controls="workspace-account-panel"
+                aria-label={`Account menu for ${userLabel}`}
+                onClick={() => setAccountOpen((open) => !open)}
+              >
+                <span className="workspace-account-avatar" aria-hidden="true">
+                  {initials}
+                </span>
+                <span className="workspace-account-meta">
+                  <span className="workspace-account-name">{userLabel}</span>
+                  {userEmail ? (
+                    <span className="workspace-account-email" title={userEmail}>
+                      {userEmail}
+                    </span>
+                  ) : null}
+                </span>
+                <ChevronDown
+                  className="workspace-account-chevron"
+                  size={16}
+                  strokeWidth={2}
+                  absoluteStrokeWidth
+                  aria-hidden="true"
+                />
+              </button>
+              {isAccountOpen ? (
+                <div
+                  id="workspace-account-panel"
+                  className="workspace-account-panel"
+                  role="group"
+                  aria-label="Account"
+                >
+                  <div className="workspace-account-summary">
+                    <span
+                      className="workspace-account-avatar workspace-account-avatar-large"
+                      aria-hidden="true"
+                    >
+                      {initials}
+                    </span>
+                    <div className="workspace-account-summary-copy">
+                      <p className="workspace-account-summary-name">{userLabel}</p>
+                      {userEmail ? (
+                        <p className="workspace-account-summary-email" title={userEmail}>
+                          {userEmail}
+                        </p>
+                      ) : null}
+                      {userEmail ? (
+                        isEmailVerified ? (
+                          <p className="workspace-account-verified">
+                            <BadgeCheck
+                              size={14}
+                              strokeWidth={2}
+                              absoluteStrokeWidth
+                              aria-hidden="true"
+                            />
+                            Verified email
+                          </p>
+                        ) : (
+                          <p className="workspace-account-unverified">Email not verified</p>
+                        )
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="workspace-account-rule" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="workspace-account-signout"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut
+                      size={18}
+                      strokeWidth={2}
+                      absoluteStrokeWidth
+                      aria-hidden="true"
+                    />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
         <main id="workspace-content" className="workspace-content" tabIndex={-1}>
