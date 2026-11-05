@@ -67,11 +67,6 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
   const isEmailVerified = Boolean(user?.emailVerified);
 
   useEffect(() => {
-    setAccountOpen(false);
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!isAccountOpen) {
       return;
     }
