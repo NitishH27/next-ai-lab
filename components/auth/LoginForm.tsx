@@ -42,12 +42,7 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="auth-card">
-      <div className="auth-form-heading">
-        <p className="eyebrow">Welcome back</p>
-        <h2>Sign in to JobFlow</h2>
-        <p>Use any valid email address and an eight-character password for this prototype.</p>
-      </div>
+    <>
       <form className="auth-form" noValidate onSubmit={handleSubmit}>
         <div className="form-field">
           <label htmlFor="login-email">Email address</label>
@@ -72,13 +67,13 @@ export default function LoginForm() {
           autoComplete="current-password"
         />
         {formError ? <p className="field-error" role="alert">{formError}</p> : null}
-        <button className="button button-primary" type="submit">Login</button>
+        <button className="button button-primary" type="submit">Sign in</button>
         <div className="form-divider"><span>or</span></div>
         <button className="button button-google" type="button" disabled title="Google sign-in is coming soon">
           Continue with Google
         </button>
       </form>
       <p className="auth-switch">New user? <Link href="/signup">Sign up</Link></p>
-    </div>
+    </>
   );
 }

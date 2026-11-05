@@ -185,7 +185,7 @@ export function ApplicationFormDrawer({
         <div className="drawer-header">
           <h2 id="drawer-title">{mode === "create" ? "Add application" : "Edit application"}</h2>
           <button type="button" onClick={onClose} className="drawer-close" aria-label="Close">
-            <X size={20} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+            <X size={20} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
           </button>
         </div>
 

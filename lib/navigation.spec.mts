@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { findWorkspacePage, getWorkspaceTitle, workspacePages } from "./navigation.ts";
 
-test("dashboard record supplies the page label, title, and description", () => {
+test("dashboard record supplies the page label and title without a description", () => {
   assert.deepEqual(findWorkspacePage("/dashboard"), {
     href: "/dashboard",
     label: "Dashboard",
     title: "Dashboard",
-    description: "Welcome to dashboard.",
   });
   assert.equal(getWorkspaceTitle("/dashboard"), "Dashboard");
 });

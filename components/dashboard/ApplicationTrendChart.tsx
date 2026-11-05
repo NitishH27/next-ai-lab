@@ -12,9 +12,10 @@ import {
 import type { WeeklyApplicationCount } from "@/lib/applications";
 
 const tooltipStyle = {
-  background: "var(--surface)",
+  background: "var(--surface-raised)",
   border: "1px solid var(--border)",
-  borderRadius: 8,
+  borderRadius: 12,
+  boxShadow: "var(--shadow-overlay)",
   color: "var(--text)",
   fontSize: 12,
 };
@@ -35,7 +36,7 @@ export default function ApplicationTrendChart({ data }: { data: WeeklyApplicatio
     <section aria-labelledby="trend-heading">
       <figure className="dashboard-chart">
         <figcaption className="dashboard-chart-header">
-          <h2 id="trend-heading">Applications sent</h2>
+          <h2 id="trend-heading">Application activity</h2>
           <span>Last 12 weeks · {total} tracked</span>
         </figcaption>
         <ul className="dashboard-chart-legend" aria-label="Chart series">
@@ -50,14 +51,16 @@ export default function ApplicationTrendChart({ data }: { data: WeeklyApplicatio
           ))}
         </ul>
         {total === 0 ? (
-          <p className="dashboard-chart-empty">
-            No applied, rejected, or interview applications in the last 12 weeks.
-          </p>
+          <p className="dashboard-chart-empty">No activity in the last 12 weeks.</p>
         ) : (
           <div className="dashboard-chart-plot" aria-hidden="true">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                <CartesianGrid
+                  stroke="var(--border)"
+                  strokeDasharray="3 4"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: "var(--text-muted)", fontSize: 12 }}
@@ -78,15 +81,16 @@ export default function ApplicationTrendChart({ data }: { data: WeeklyApplicatio
                   labelStyle={{ color: "var(--text)" }}
                   formatter={(value) => `${value}`}
                   labelFormatter={(label) => `Week of ${label}`}
+                  isAnimationActive={false}
                 />
                 <Line
                   type="linear"
                   dataKey="applied"
                   name="Applied"
                   stroke="var(--accent)"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2 }}
-                  activeDot={{ r: 5 }}
+                  strokeWidth={1.5}
+                  dot={false}
+                  activeDot={{ r: 2, fill: "var(--accent)", strokeWidth: 0 }}
                   isAnimationActive={false}
                 />
                 <Line
@@ -94,19 +98,22 @@ export default function ApplicationTrendChart({ data }: { data: WeeklyApplicatio
                   dataKey="rejected"
                   name="Rejected"
                   stroke="var(--danger)"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2 }}
-                  activeDot={{ r: 5 }}
+                  strokeDasharray="5 4"
+                  strokeWidth={1.5}
+                  dot={false}
+                  activeDot={{ r: 2, fill: "var(--danger)", strokeWidth: 0 }}
                   isAnimationActive={false}
                 />
                 <Line
                   type="linear"
                   dataKey="interview"
                   name="Interview"
-                  stroke="var(--success)"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2 }}
-                  activeDot={{ r: 5 }}
+                  stroke="var(--warning)"
+                  strokeDasharray="1 4"
+                  strokeLinecap="round"
+                  strokeWidth={1.5}
+                  dot={false}
+                  activeDot={{ r: 2, fill: "var(--warning)", strokeWidth: 0 }}
                   isAnimationActive={false}
                 />
               </LineChart>

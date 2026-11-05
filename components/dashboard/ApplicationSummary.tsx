@@ -1,43 +1,14 @@
-import type { ReactNode } from "react";
-import {
-  Award,
-  CircleX,
-  Clock,
-  MessageCircleCheck,
-  Send,
-  type LucideIcon,
-} from "lucide-react";
+import Link from "next/link";
 import type { ApplicationSummary } from "@/lib/applications";
 
-type SummaryCardProps = {
-  label: string;
-  value: number;
-  icon: LucideIcon;
-  tone: "sent" | "positive" | "offers" | "rejected" | "awaiting";
-  detail: string;
-  warn?: boolean;
-  children?: ReactNode;
-};
-
-function SummaryCard({ label, value, icon: Icon, tone, detail, warn, children }: SummaryCardProps) {
-  return (
-    <li className={`summary-card summary-card--${tone}${warn ? " is-warning" : ""}`}>
-      <div className="summary-card-header">
-        <Icon
-          className="summary-card-icon"
-          size={20}
-          strokeWidth={2}
-          absoluteStrokeWidth
-          aria-hidden="true"
-        />
-        <p className="summary-card-label">{label}</p>
-      </div>
-      <p className="summary-card-value">{value}</p>
-      <p className={`summary-card-detail${warn ? " is-warning" : ""}`}>{detail}</p>
-      {children}
-    </li>
-  );
-}
+const statusOrder = [
+  { key: "applied", label: "Applied" },
+  { key: "screening", label: "Screening" },
+  { key: "interview", label: "Interview" },
+  { key: "offer", label: "Offer" },
+  { key: "rejected", label: "Rejected" },
+  { key: "withdrawn", label: "Withdrawn" },
+] as const;
 
 export default function ApplicationSummary({ summary }: { summary: ApplicationSummary }) {
   const rate = summary.responseRate === null ? "—" : `${summary.responseRate}% of resolved`;
@@ -45,75 +16,62 @@ export default function ApplicationSummary({ summary }: { summary: ApplicationSu
     summary.stale === 0 ? "No follow-ups due" : `${summary.stale} need follow-up`;
 
   return (
-    <section aria-labelledby="summary-heading">
+    <section className="summary" aria-labelledby="summary-heading">
       <h2 className="visually-hidden" id="summary-heading">
         Application status summary
       </h2>
       <ul className="summary-grid">
-        <SummaryCard
-          label="Applications sent"
-          value={summary.sent}
-          icon={Send}
-          tone="sent"
-          detail="All time"
-        >
-          <dl className="summary-breakdown">
-            <div>
-              <dt>Applied</dt>
-              <dd>{summary.counts.applied}</dd>
-            </div>
-            <div>
-              <dt>Screening</dt>
-              <dd>{summary.counts.screening}</dd>
-            </div>
-            <div>
-              <dt>Interview</dt>
-              <dd>{summary.counts.interview}</dd>
-            </div>
-            <div>
-              <dt>Offer</dt>
-              <dd>{summary.counts.offer}</dd>
-            </div>
-            <div>
-              <dt>Rejected</dt>
-              <dd>{summary.counts.rejected}</dd>
-            </div>
-            <div>
-              <dt>Withdrawn</dt>
-              <dd>{summary.counts.withdrawn}</dd>
-            </div>
-          </dl>
-        </SummaryCard>
-        <SummaryCard
-          label="Positive responses"
-          value={summary.positive}
-          icon={MessageCircleCheck}
-          tone="positive"
-          detail={rate}
-        />
-        <SummaryCard
-          label="Offers"
-          value={summary.offers}
-          icon={Award}
-          tone="offers"
-          detail={rate}
-        />
-        <SummaryCard
-          label="Rejected"
-          value={summary.rejected}
-          icon={CircleX}
-          tone="rejected"
-          detail={`${summary.rejected} of ${summary.resolved} resolved`}
-        />
-        <SummaryCard
-          label="Awaiting review"
-          value={summary.awaiting}
-          icon={Clock}
-          tone="awaiting"
-          detail={staleDetail}
-          warn={summary.stale > 0}
-        />
+        <li className="summary-stat">
+          <p className="summary-stat-label">Applications sent</p>
+          <p className="summary-stat-value">{summary.sent}</p>
+          <p className="summary-stat-detail">All time</p>
+        </li>
+        <li className="summary-stat">
+          <p className="summary-stat-label">Positive responses</p>
+          <p className="summary-stat-value">{summary.positive}</p>
+          <p className="summary-stat-detail">{rate}</p>
+        </li>
+        <li className="summary-stat">
+          <p className="summary-stat-label">Offers</p>
+          <p className="summary-stat-value">{summary.offers}</p>
+          <p className="summary-stat-detail">{rate}</p>
+        </li>
+        <li className="summary-stat">
+          <p className="summary-stat-label">Rejected</p>
+          <p className="summary-stat-value">{summary.rejected}</p>
+          <p className="summary-stat-detail">
+            {summary.rejected} of {summary.resolved} resolved
+          </p>
+        </li>
+        <li className="summary-stat">
+          <p className="summary-stat-label">Awaiting review</p>
+          <p className="summary-stat-value">{summary.awaiting}</p>
+          <p
+            className={`summary-stat-detail${summary.stale > 0 ? " is-warning" : ""}`}
+          >
+            {staleDetail}
+          </p>
+        </li>
       </ul>
+      {summary.sent === 0 ? (
+        <p className="dashboard-empty">
+          No applications yet.{" "}
+          <Link href="/applications">Add your first application</Link>.
+        </p>
+      ) : null}
+      <div className="summary-status">
+        <h2 className="summary-status-label" id="summary-status-heading">
+          Applications sent by status
+        </h2>
+        <dl className="summary-status-list" aria-labelledby="summary-status-heading">
+          {statusOrder.map((status) => (
+            <div className="summary-status-item" key={status.key}>
+              <dt>{status.label}</dt>
+              <dd>{summary.counts[status.key]}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </section>
   );
 }

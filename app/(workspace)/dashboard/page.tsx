@@ -38,15 +38,9 @@ export default async function DashboardPage() {
 
   const summary = summarizeApplications(applications);
   const weekly = getWeeklyApplicationCounts(applications);
-  const isEmpty = summary.sent === 0;
 
   return (
     <div className="dashboard-shell">
-      {isEmpty ? (
-        <p className="dashboard-notice" role="note">
-          No applications yet. Add your first one from the Applications page.
-        </p>
-      ) : null}
       <ApplicationSummary summary={summary} />
       <ApplicationTrendChart data={weekly} />
     </div>

@@ -1,68 +1,27 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type FocusEvent,
-  type PointerEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
+  Briefcase,
   ChevronDown,
+  CircleUserRound,
   LayoutDashboard,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Menu,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { findWorkspacePage, workspacePages } from "@/lib/navigation";
 import { authClient } from "@/lib/auth/client";
 
-const compactQuery = "(max-width: 47.99rem)";
-
-type NavTooltip = {
-  label: string;
-  top: number;
-  left?: number;
-  right?: number;
-};
-
 const navIcons: Record<string, LucideIcon> = {
   "/dashboard": LayoutDashboard,
+  "/applications": Briefcase,
+  "/profile": CircleUserRound,
 };
-
-function subscribeToCompact(callback: () => void) {
-  const media = window.matchMedia(compactQuery);
-  media.addEventListener("change", callback);
-  return () => media.removeEventListener("change", callback);
-}
-
-function getCompactSnapshot() {
-  return window.matchMedia(compactQuery).matches;
-}
-
-function getCompactServerSnapshot() {
-  return false;
-}
-
-function getTooltipPosition(element: HTMLElement, label: string): NavTooltip {
-  const rect = element.getBoundingClientRect();
-  const rail = element.closest(".workspace-sidebar")?.getBoundingClientRect() ?? rect;
-  const isRtl = document.documentElement.dir === "rtl";
-
-  return {
-    label,
-    top: rect.top + rect.height / 2,
-    left: isRtl ? undefined : rail.right + 8,
-    right: isRtl ? window.innerWidth - rail.left + 8 : undefined,
-  };
-}
 
 type WorkspaceShellProps = {
   children: ReactNode;
@@ -92,17 +51,12 @@ function getInitials(label: string) {
 export default function WorkspaceShell({ children, session }: WorkspaceShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAccountOpen, setAccountOpen] = useState(false);
-  const [navTooltip, setNavTooltip] = useState<NavTooltip | null>(null);
+  const [isMenuOpen, setMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountButtonRef = useRef<HTMLButtonElement>(null);
-  const isCompactViewport = useSyncExternalStore(
-    subscribeToCompact,
-    getCompactSnapshot,
-    getCompactServerSnapshot,
-  );
-  const isCollapsed = isSidebarCollapsed || isCompactViewport;
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLElement>(null);
   const page = findWorkspacePage(pathname);
   const title = page?.title ?? "JobFlow";
 
@@ -111,6 +65,11 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
   const userEmail = user?.email ?? null;
   const initials = getInitials(userLabel);
   const isEmailVerified = Boolean(user?.emailVerified);
+
+  useEffect(() => {
+    setAccountOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!isAccountOpen) {
@@ -151,9 +110,46 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
     };
   }, [isAccountOpen]);
 
-  function toggleSidebar() {
-    setNavTooltip(null);
-    setSidebarCollapsed((collapsed) => !collapsed);
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    function closeOnOutsidePress(event: globalThis.PointerEvent) {
+      const target = event.target as Node;
+
+      if (
+        !menuButtonRef.current?.contains(target) &&
+        !mobileMenuRef.current?.contains(target)
+      ) {
+        setMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMenuOpen]);
+
+  function toggleAccount() {
+    setMenuOpen(false);
+    setAccountOpen((open) => !open);
+  }
+
+  function toggleMenu() {
+    setAccountOpen(false);
+    setMenuOpen((open) => !open);
   }
 
   async function handleSignOut() {
@@ -167,220 +163,162 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
     router.replace("/login");
   }
 
-  function showNavTooltip(
-    event: PointerEvent<HTMLAnchorElement> | FocusEvent<HTMLAnchorElement>,
-    label: string,
-  ) {
-    if (!isCollapsed) {
-      return;
-    }
+  function renderNavLinks(linkClassName: string, onActivate?: () => void) {
+    return workspacePages.map((item) => {
+      const Icon = navIcons[item.href];
+      const isCurrent = pathname === item.href;
 
-    if ("pointerType" in event && event.pointerType !== "mouse") {
-      return;
-    }
-
-    setNavTooltip(getTooltipPosition(event.currentTarget, label));
-  }
-
-  function hideNavTooltip() {
-    setNavTooltip(null);
+      return (
+        <li key={item.href}>
+          <Link
+            className={`${linkClassName}${isCurrent ? " is-current" : ""}`}
+            href={item.href}
+            aria-current={isCurrent ? "page" : undefined}
+            onClick={onActivate}
+          >
+            {Icon ? (
+              <Icon size={18} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+            ) : null}
+            <span>{item.label}</span>
+          </Link>
+        </li>
+      );
+    });
   }
 
   return (
-    <div className={`workspace-shell${isCollapsed ? " is-sidebar-collapsed" : ""}`}>
+    <div className="workspace-shell">
       <a className="workspace-skip-link" href="#workspace-content">
         Skip to content
       </a>
-      <aside
-        id="workspace-sidebar"
-        className={`workspace-sidebar${isCollapsed ? " is-collapsed" : ""}`}
-        aria-label="Workspace sidebar"
-      >
-        <Link className="workspace-brand" href="/dashboard" aria-label="JobFlow dashboard">
-          <Image
-            className="workspace-brand-image"
-            src={isCollapsed ? "/images/collapsedLogo.jpg" : "/images/expandedLogo.jpg"}
-            alt=""
-            width={isCollapsed ? 1254 : 1774}
-            height={isCollapsed ? 1254 : 887}
-            sizes={isCollapsed ? "2.5rem" : "10rem"}
-            preload
-          />
-        </Link>
-        <nav className="workspace-nav" aria-label="Primary">
-          <ul className="workspace-nav-list">
-            {workspacePages.map((item) => {
-              const Icon = navIcons[item.href] ?? LayoutDashboard;
-              const isCurrent = pathname === item.href;
-
-              return (
-                <li key={item.href}>
-                  <Link
-                    className={`workspace-nav-link${isCurrent ? " is-current" : ""}`}
-                    href={item.href}
-                    aria-current={isCurrent ? "page" : undefined}
-                    onPointerEnter={(event) => showNavTooltip(event, item.label)}
-                    onPointerLeave={hideNavTooltip}
-                    onFocus={(event) => showNavTooltip(event, item.label)}
-                    onBlur={hideNavTooltip}
-                  >
-                    <Icon
-                      size={20}
-                      strokeWidth={2}
-                      absoluteStrokeWidth
-                      aria-hidden="true"
-                    />
-                    <span className={`workspace-nav-label${isCollapsed ? " visually-hidden" : ""}`}>
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-        {!isCompactViewport ? (
-          <div className="workspace-sidebar-footer">
+      <header className="workspace-header">
+        <div className="workspace-header-inner">
+          <Link
+            className="workspace-wordmark"
+            href="/dashboard"
+            aria-label="JobFlow dashboard"
+          >
+            <span className="workspace-wordmark-dot" aria-hidden="true" />
+            JobFlow
+          </Link>
+          <nav className="workspace-nav" aria-label="Primary">
+            <ul className="workspace-nav-list">{renderNavLinks("workspace-nav-link")}</ul>
+          </nav>
+          <div className="workspace-account" ref={accountRef}>
             <button
+              ref={accountButtonRef}
               type="button"
-              className="workspace-collapse"
-              aria-expanded={!isCollapsed}
-              aria-controls="workspace-sidebar"
-              aria-label={isCollapsed ? "Expand sidebar" : undefined}
-              onClick={toggleSidebar}
+              className="workspace-account-trigger"
+              aria-expanded={isAccountOpen}
+              aria-controls="workspace-account-panel"
+              aria-label={`Account menu for ${userLabel}`}
+              onClick={toggleAccount}
             >
-              {isCollapsed ? (
-                <PanelLeftOpen
-                  size={20}
-                  strokeWidth={2}
-                  absoluteStrokeWidth
-                  aria-hidden="true"
-                />
-              ) : (
-                <PanelLeftClose
-                  size={20}
-                  strokeWidth={2}
-                  absoluteStrokeWidth
-                  aria-hidden="true"
-                />
-              )}
-              {isCollapsed ? (
-                <span className="workspace-flyout workspace-collapse-flyout" aria-hidden="true">
-                  Expand sidebar
-                </span>
-              ) : (
-                <span className="workspace-collapse-label">Collapse sidebar</span>
-              )}
+              <span className="workspace-account-avatar" aria-hidden="true">
+                {initials}
+              </span>
+              <span className="workspace-account-meta">
+                <span className="workspace-account-name">{userLabel}</span>
+              </span>
+              <ChevronDown
+                className="workspace-account-chevron"
+                size={16}
+                strokeWidth={1.75}
+                absoluteStrokeWidth
+                aria-hidden="true"
+              />
             </button>
-          </div>
-        ) : null}
-      </aside>
-      <div className="workspace-main">
-        <header className="workspace-header">
-          <div className="workspace-header-inner">
-            <div className="workspace-header-copy">
-              <h1>{title}</h1>
-              {page?.description ? <p>{page.description}</p> : null}
-            </div>
-            <div className="workspace-account" ref={accountRef}>
-              <button
-                ref={accountButtonRef}
-                type="button"
-                className="workspace-account-trigger"
-                aria-expanded={isAccountOpen}
-                aria-controls="workspace-account-panel"
-                aria-label={`Account menu for ${userLabel}`}
-                onClick={() => setAccountOpen((open) => !open)}
+            {isAccountOpen ? (
+              <div
+                id="workspace-account-panel"
+                className="workspace-account-panel"
+                role="group"
+                aria-label="Account"
               >
-                <span className="workspace-account-avatar" aria-hidden="true">
-                  {initials}
-                </span>
-                <span className="workspace-account-meta">
-                  <span className="workspace-account-name">{userLabel}</span>
-                  {userEmail ? (
-                    <span className="workspace-account-email" title={userEmail}>
-                      {userEmail}
-                    </span>
-                  ) : null}
-                </span>
-                <ChevronDown
-                  className="workspace-account-chevron"
-                  size={16}
-                  strokeWidth={2}
-                  absoluteStrokeWidth
-                  aria-hidden="true"
-                />
-              </button>
-              {isAccountOpen ? (
-                <div
-                  id="workspace-account-panel"
-                  className="workspace-account-panel"
-                  role="group"
-                  aria-label="Account"
-                >
-                  <div className="workspace-account-summary">
-                    <span
-                      className="workspace-account-avatar workspace-account-avatar-large"
-                      aria-hidden="true"
-                    >
-                      {initials}
-                    </span>
-                    <div className="workspace-account-summary-copy">
-                      <p className="workspace-account-summary-name">{userLabel}</p>
-                      {userEmail ? (
-                        <p className="workspace-account-summary-email" title={userEmail}>
-                          {userEmail}
-                        </p>
-                      ) : null}
-                      {userEmail ? (
-                        isEmailVerified ? (
-                          <p className="workspace-account-verified">
-                            <BadgeCheck
-                              size={14}
-                              strokeWidth={2}
-                              absoluteStrokeWidth
-                              aria-hidden="true"
-                            />
-                            Verified email
-                          </p>
-                        ) : (
-                          <p className="workspace-account-unverified">Email not verified</p>
-                        )
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="workspace-account-rule" aria-hidden="true" />
-                  <button
-                    type="button"
-                    className="workspace-account-signout"
-                    onClick={handleSignOut}
+                <div className="workspace-account-summary">
+                  <span
+                    className="workspace-account-avatar workspace-account-avatar-large"
+                    aria-hidden="true"
                   >
-                    <LogOut
-                      size={18}
-                      strokeWidth={2}
-                      absoluteStrokeWidth
-                      aria-hidden="true"
-                    />
-                    <span>Sign out</span>
-                  </button>
+                    {initials}
+                  </span>
+                  <div className="workspace-account-summary-copy">
+                    <p className="workspace-account-summary-name">{userLabel}</p>
+                    {userEmail ? (
+                      <p className="workspace-account-summary-email" title={userEmail}>
+                        {userEmail}
+                      </p>
+                    ) : null}
+                    {userEmail ? (
+                      isEmailVerified ? (
+                        <p className="workspace-account-verified">
+                          <BadgeCheck
+                            size={14}
+                            strokeWidth={1.75}
+                            absoluteStrokeWidth
+                            aria-hidden="true"
+                          />
+                          Verified email
+                        </p>
+                      ) : (
+                        <p className="workspace-account-unverified">Email not verified</p>
+                      )
+                    ) : null}
+                  </div>
                 </div>
-              ) : null}
-            </div>
+                <div className="workspace-account-rule" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="workspace-account-signout"
+                  onClick={handleSignOut}
+                >
+                  <LogOut
+                    size={16}
+                    strokeWidth={1.75}
+                    absoluteStrokeWidth
+                    aria-hidden="true"
+                  />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            ) : null}
           </div>
-        </header>
-        <main id="workspace-content" className="workspace-content" tabIndex={-1}>
-          {children}
-        </main>
-      </div>
-      {navTooltip ? (
-        <span
-          className="workspace-flyout workspace-nav-tooltip"
-          style={{ top: navTooltip.top, left: navTooltip.left, right: navTooltip.right }}
-          aria-hidden="true"
-        >
-          {navTooltip.label}
-        </span>
-      ) : null}
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className="workspace-menu-button"
+            aria-expanded={isMenuOpen}
+            aria-controls="workspace-mobile-menu"
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            onClick={toggleMenu}
+          >
+            {isMenuOpen ? (
+              <X size={18} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+            ) : (
+              <Menu size={18} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+            )}
+          </button>
+        </div>
+        {isMenuOpen ? (
+          <nav
+            ref={mobileMenuRef}
+            id="workspace-mobile-menu"
+            className="workspace-mobile-menu"
+            aria-label="Primary"
+          >
+            <ul className="workspace-mobile-menu-list">
+              {renderNavLinks("workspace-mobile-nav-link", () => setMenuOpen(false))}
+            </ul>
+          </nav>
+        ) : null}
+      </header>
+      <main id="workspace-content" className="workspace-content" tabIndex={-1}>
+        <div className="workspace-page-header">
+          <h1>{title}</h1>
+          {page?.description ? <p>{page.description}</p> : null}
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

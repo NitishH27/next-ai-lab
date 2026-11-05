@@ -10,7 +10,6 @@ export const workspacePages: readonly WorkspacePage[] = [
     href: "/dashboard",
     label: "Dashboard",
     title: "Dashboard",
-    description: "Welcome to dashboard.",
   },
   {
     href: "/applications",

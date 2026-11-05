@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:check": "node scripts/check-db.mjs",
-    "test": "node --test lib/auth.spec.mts lib/auth/email.spec.mts lib/applications.spec.mts lib/navigation.spec.mts lib/db/migrations.spec.mts lib/validators/applications.spec.mts",
+    "test": "node --test lib/auth.spec.mts lib/auth/email.spec.mts lib/applications.spec.mts lib/navigation.spec.mts lib/design-tokens.spec.mts lib/db/migrations.spec.mts lib/validators/applications.spec.mts",
     "migrate:up": "migrate-mongo up",
     "migrate:down": "migrate-mongo down"
   },
@@ -18,7 +18,6 @@
     "ag-grid-react": "^36.2.0",
     "better-auth": "^1.7.13",
     "dayjs": "^1.11.23",
-    "lottie-react": "^3.1.2",
     "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",
     "next": "16.4.2",

@@ -2,6 +2,15 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-11-05 — Upgrade PRD-008 and the design system to a dark top-nav revamp
+
+- Replaced the initial Quiet Paper draft in PRD-008 with a dark-only Ink Navy system: `canvas #0B0F14`, three surface levels, seafoam primary actions, teal accent, cool-grey text, Plus Jakarta Sans, 8/12/16px radii, 44px controls, a 40px applications search exception, 48px grid rows, a 64px top navbar, 72rem content, 24rem auth, and 28rem drawer.
+- Moved primary navigation from the sidebar to a sticky top navbar with a text wordmark, horizontal links, account trigger/panel, mobile menu, 180ms active/hover underlines, a 150ms chevron rotation, and 150ms disclosure panels. Removed the sidebar/collapse/flyout/logo-tile direction and kept reduced-motion overrides.
+- Reworked auth, dashboard, chart, applications grid, drawer, states, status mapping, icon sizing, and cleanup: centered auth column; five-metric summary strip plus labeled six-status line; “Application activity” with solid/dashed/dotted accent/danger/warning series; 44px grid headers and 48px rows; 6px status dots; no KPI icons, nested cards, decorative shadows, or Lottie.
+- Marked PRD-008 Ready for Code and split it into tasks 008.1–008.5; moved 008.0 to Done, added visual-supersession notes to PRD-001/002/003, and updated PRD-007.1 and `TASKS.md` for top-navigation Profile entry points.
+- Closed the grilling gaps: root `colorScheme`/`themeColor` metadata, text tokens, `Briefcase`/`CircleUserRound` icon mapping, account accessible name, summary detail copy, 56/40/24rem strip breakpoints, no width animation, and README/`detailedInfo.md` documentation scope.
+- Validation: documentation-only change; no app code, routes, dependencies, or runtime behavior changed, so tests, lint, and build were not re-run.
+
 ## 2026-11-03 — Add PRD-007.1 for profile section CRUD
 
 - Added PRD-007.1 to `PRD.md`: a focused child requirement for the `/profile` section where signed-in users create, view, edit, and delete personal details, professional details, and job preferences.

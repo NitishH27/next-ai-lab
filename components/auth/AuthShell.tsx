@@ -1,5 +1,5 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
-import AuthIllustration from "@/components/auth/AuthIllustration";
 
 type AuthShellProps = {
   children: ReactNode;
@@ -11,20 +11,21 @@ export default function AuthShell({ children, variant }: AuthShellProps) {
 
   return (
     <main className="auth-page">
-      <aside className="auth-brand" aria-label="JobFlow introduction">
-        <div className="auth-brand-copy">
-          <span className="brand-mark">JobFlow</span>
-          <p className="auth-brand-kicker">Your career, in motion</p>
-          <h1>{isLogin ? "Pick up where your career left off." : "Your next chapter starts here."}</h1>
-          <p className="auth-brand-description">
+      <div className="auth-panel">
+        <Link className="auth-wordmark" href="/" aria-label="JobFlow home">
+          <span className="auth-wordmark-dot" aria-hidden="true" />
+          JobFlow
+        </Link>
+        <div className="auth-form-heading">
+          <h1>{isLogin ? "Sign in to JobFlow" : "Create your JobFlow account"}</h1>
+          <p>
             {isLogin
-              ? "Organize applications, stay prepared, and keep each opportunity moving."
-              : "Build a calmer, clearer way to manage every application and opportunity."}
+              ? "Pick up where you left off and keep every opportunity moving."
+              : "Track applications and next steps in one calm workspace."}
           </p>
         </div>
-        <AuthIllustration variant={variant} />
-      </aside>
-      <section className="auth-form-panel">{children}</section>
+        {children}
+      </div>
     </main>
   );
 }

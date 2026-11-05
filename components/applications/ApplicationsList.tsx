@@ -11,7 +11,7 @@ import type {
 } from "ag-grid-community";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
 import dayjs from "dayjs";
-import { Briefcase, Plus, Search } from "lucide-react";
+import { Briefcase, ChevronRight, Plus, Search } from "lucide-react";
 import { getApplicationsAction } from "@/app/(workspace)/applications/actions";
 import type { ApplicationStatus } from "@/lib/applications";
 import { ApplicationFormDrawer } from "./ApplicationFormDrawer";
@@ -73,11 +73,15 @@ function AppliedDateCellRenderer({ value }: ICellRendererParams<ApplicationRow>)
   );
 }
 
+function formatStatus(status: ApplicationStatus) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 function StatusCellRenderer({ value }: ICellRendererParams<ApplicationRow>) {
   const status = value as ApplicationStatus;
   return (
     <Cell>
-      <span className={`app-status app-status-${status}`}>{status}</span>
+      <span className={`app-status app-status-${status}`}>{formatStatus(status)}</span>
     </Cell>
   );
 }
@@ -86,6 +90,13 @@ function StatusChangedCellRenderer({ value }: ICellRendererParams<ApplicationRow
   return (
     <Cell>
       <DateValue value={value} />
+      <ChevronRight
+        className="app-cell-chevron"
+        size={14}
+        strokeWidth={1.75}
+        absoluteStrokeWidth
+        aria-hidden="true"
+      />
     </Cell>
   );
 }
@@ -240,7 +251,13 @@ export function ApplicationsList() {
           <label className="visually-hidden" htmlFor="applications-search">
             Search applications
           </label>
-          <Search className="applications-search-icon" size={16} aria-hidden="true" />
+          <Search
+            className="applications-search-icon"
+            size={16}
+            strokeWidth={1.75}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
           <input
             id="applications-search"
             type="search"
@@ -249,9 +266,9 @@ export function ApplicationsList() {
             onChange={(e) => setSearchText(e.target.value)}
           />
         </div>
-        <button type="button" onClick={handleAdd} className="button button-primary button-sm">
-          <Plus size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
-          Add new application
+        <button type="button" onClick={handleAdd} className="button button-primary">
+          <Plus size={16} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+          Add application
         </button>
       </div>
 
@@ -270,24 +287,27 @@ export function ApplicationsList() {
         </div>
       ) : filteredData.length === 0 ? (
         <div className="applications-empty">
-          <span className="applications-empty-icon">
-            <Briefcase size={22} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
-          </span>
-          <h3>{searchText ? "No applications found" : "No applications yet"}</h3>
-          <p>
+          <Briefcase
+            className="applications-empty-icon"
+            size={20}
+            strokeWidth={1.75}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
+          <p className="applications-empty-message">
             {searchText
-              ? "Try a different company, role, or status."
-              : "Add your first application to start tracking progress."}
+              ? "No applications match your search."
+              : "No applications yet. Add your first application to start tracking progress."}
           </p>
           {!searchText && (
-            <button type="button" onClick={handleAdd} className="button button-primary button-sm">
-              <Plus size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
-              Add new application
+            <button type="button" onClick={handleAdd} className="button button-primary">
+              <Plus size={16} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+              Add application
             </button>
           )}
         </div>
       ) : (
-        <div className="ag-theme-jobflow" style={{ height: 520, width: "100%" }}>
+        <div className="ag-theme-jobflow applications-grid">
           <AgGridReact
             // The grid is themed through applications-grid.css, so opt out of the default theme.
             theme="legacy"

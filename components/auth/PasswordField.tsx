@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 type PasswordFieldProps = {
   id: string;
@@ -43,11 +44,11 @@ export default function PasswordField({
           aria-label={isVisible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
           aria-pressed={isVisible}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-            <circle cx="12" cy="12" r="2.5" />
-            {isVisible ? null : <path d="m4 4 16 16" />}
-          </svg>
+          {isVisible ? (
+            <EyeOff size={16} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+          ) : (
+            <Eye size={16} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+          )}
           <span>{isVisible ? "Hide" : "Show"}</span>
         </button>
       </div>

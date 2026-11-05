@@ -50,12 +50,7 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="auth-card">
-      <div className="auth-form-heading">
-        <p className="eyebrow">Create your workspace</p>
-        <h2>Start your JobFlow</h2>
-        <p>Keep every application, conversation, and next step in one calm place.</p>
-      </div>
+    <>
       <form className="auth-form" noValidate onSubmit={handleSubmit}>
         <div className="form-field">
           <label htmlFor="signup-name">Full name</label>
@@ -105,7 +100,7 @@ export default function SignupForm() {
         {success ? <p className="field-success" role="status">Check your email to verify your account before signing in.</p> : null}
         <button className="button button-primary" type="submit">Create account</button>
       </form>
-      <p className="auth-switch">Already have an account? <Link href="/login">Log in</Link></p>
-    </div>
+      <p className="auth-switch">Already have an account? <Link href="/login">Sign in</Link></p>
+    </>
   );
 }
