@@ -152,7 +152,8 @@
 }
 
 .ag-theme-jobflow .ag-header {
-  border-block-end: 1px solid var(--border);
+  border-block-end: 0;
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 
 .ag-theme-jobflow .ag-header-cell {

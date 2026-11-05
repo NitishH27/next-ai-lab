@@ -151,7 +151,7 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
     setAccountOpen(false);
 
     try {
-      await (authClient as { signOut: () => Promise<unknown> }).signOut();
+      await authClient.signOut();
     } catch {
       // ignore
     }

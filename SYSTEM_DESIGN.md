@@ -4,7 +4,7 @@ This document is the visual and interaction source of truth for JobFlow. The tar
 
 The direction adapts the `ui-ux-pro-max` dark dashboard and minimal SaaS guidance and applies the `ui-taste` anti-slop rules. `ui-ux-pro-max` selected **Plus Jakarta Sans** for this enterprise SaaS and productivity dashboard. Material UI and Chakra UI are component libraries, not typefaces; they are not adopted because they would add a second component and theme system beside the existing token and CSS layer.
 
-PRD-008 implements this system. Until that work lands, the existing light Ocean Depths UI remains the current implementation. Do not mix the two directions on one screen.
+PRD-008 implements this system across the current auth and signed-in surfaces. Future screens inherit these tokens and component rules; do not mix in the retired light Ocean Depths direction.
 
 ## Principles
 

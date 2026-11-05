@@ -61,14 +61,14 @@ exist. The tracker screens do not exist yet.
 | Framework | Next.js | 16.4.2 | Routing, server rendering, API endpoints, build tooling |
 | UI library | React | 19.3.0 | Builds the interface from components |
 | Language | TypeScript | 5.x | JavaScript with type checking |
-| Styling | Tailwind CSS + custom CSS | 4.x | Utility classes plus the Ocean Depths design tokens in `app/globals.css` |
+| Styling | Tailwind CSS + custom CSS | 4.x | Utility classes plus the dark Ink Navy design tokens in `app/globals.css` |
 | Database | MongoDB Atlas | — | Stores users, sessions, and applications |
 | MongoDB driver | `mongodb` (native) | 7.x | Talks to MongoDB directly; there is no ORM/Mongoose |
 | Auth | Better Auth + Mongo adapter | 1.7.x | Signup, login, email verification, sessions |
 | Validation | Zod | 4.x | Checks untrusted input at the server boundary |
 | Charts | Recharts | 3.x | The dashboard trend chart |
 | Icons | Lucide React | 1.x | All app icons |
-| Animation | Lottie React | 3.x | Auth-screen illustrations |
+| Motion | CSS transitions | — | Navigation underlines and disclosure panels, with reduced-motion overrides |
 | Migrations | migrate-mongo | 14.x | Creates indexes in a repeatable way |
 | Email | Resend | — | Sends verification emails in production |
 
@@ -237,7 +237,7 @@ lib/
 ├── constants/db.ts          # reads env values once
 ├── db/                      # MongoClient, database, collections, stored types
 ├── env.ts                   # validates required environment variables
-├── navigation.ts            # sidebar/page title source of truth
+├── navigation.ts            # top-nav links and page-title source of truth
 ├── repositories/            # the only code that queries `applications`
 ├── utils/serialization.ts   # BSON -> JSON-safe values
 └── validators/              # Zod schemas for application input
@@ -338,12 +338,25 @@ app/layout.tsx
     └── /dashboard
 ```
 
-`app/layout.tsx` only provides the `<html>` and `<body>` shell:
+`app/layout.tsx` provides the `<html>` and `<body>` shell, loads Plus Jakarta
+Sans through `next/font/google`, and sets dark viewport metadata:
 
 ```tsx
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  variable: "--font-plus-jakarta",
+});
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#0B0F14",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en">
+    <html lang="en" className={plusJakarta.variable}>
       <body>{children}</body>
     </html>
   );
@@ -351,7 +364,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 ```
 
 `app/(workspace)/layout.tsx` provides the signed-in experience. It checks the
-session and renders the sidebar/header shell:
+session and renders the sticky top-navigation shell:
 
 ```tsx
 export default async function WorkspaceLayout({ children }: { children: ReactNode }) {
@@ -366,7 +379,8 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
 ```
 
 Because the login and signup pages are **outside** `(workspace)`, they do not get
-the sidebar. That is intentional: they are full-screen pre-authentication pages.
+the workspace top navigation. That is intentional: they are full-screen
+pre-authentication pages.
 
 ### Dynamic segments
 
@@ -459,8 +473,7 @@ environments. The browser never receives `MONGODB_URI`, `MONGODB_PASSWORD`, or
 | `components/auth/LoginForm.tsx` | Controlled inputs, submit handler, error state |
 | `components/auth/SignupForm.tsx` | Controlled inputs, submit handler, success state |
 | `components/auth/PasswordField.tsx` | Show/hide password state |
-| `components/auth/AuthIllustration.tsx` | Lottie animation and reduced-motion checks |
-| `components/layout/WorkspaceShell.tsx` | Sidebar state, pathname, sign-out, media query |
+| `components/layout/WorkspaceShell.tsx` | Top-nav disclosures, sign-out, outside press, and Escape handling |
 | `components/dashboard/ApplicationTrendChart.tsx` | Recharts needs the DOM and hover interaction |
 | `app/login/page.tsx`, `app/signup/page.tsx` | Session check in an effect, then client redirect |
 
@@ -739,7 +752,7 @@ is ever rendered outside the workspace layout.
 
 ### Sign-out
 
-The sidebar's sign-out button calls:
+The top navigation's account-panel sign-out button calls:
 
 ```ts
 await authClient.signOut();
@@ -1546,32 +1559,31 @@ next-ai-lab/
 │   ├── globals.css              # Tailwind import + all design tokens/styles
 │   └── favicon.ico
 ├── components/
-│   ├── auth/                    # auth shell, forms, password field, Lottie
-│   ├── dashboard/               # summary cards + trend chart
-│   └── layout/                  # signed-in sidebar/header shell
+│   ├── auth/                    # centered auth shell, forms, password field
+│   ├── dashboard/               # summary strip + trend chart
+│   └── layout/                  # signed-in sticky top-navigation shell
 ├── lib/
 │   ├── applications.ts          # status types, summary, trend helpers
 │   ├── auth.ts                  # browser form validation helpers
 │   ├── auth/                    # Better Auth config, server/client, email
 │   ├── constants/db.ts          # validated env exports
 │   ├── db/                      # client, db, collections, stored types
+│   ├── design-tokens.spec.mts   # palette, contrast, and raw-hex checks
 │   ├── env.ts                   # environment validation
-│   ├── navigation.ts            # sidebar links and page titles
+│   ├── navigation.ts            # top-nav links and page titles
 │   ├── repositories/            # application data access
 │   ├── utils/serialization.ts   # BSON -> JSON
 │   └── validators/              # Zod schemas
 ├── migrations/                  # migrate-mongo index migrations
 ├── scripts/check-db.mjs         # connectivity check
-├── public/
-│   ├── animations/              # Lottie files
-│   └── images/                  # JobFlow logo marks
+├── public/                      # static assets served from the site root
 ├── .env.example                 # variable template (safe to commit)
 ├── .env.local                   # real local secrets (gitignored)
 ├── ARCHITECTURE.md              # structural decisions
 ├── AGENTS.md                    # instructions for AI coding agents
 ├── PRD.md                       # product requirements
 ├── RULES.md                     # development rules
-├── SYSTEM_DESIGN.md             # Ocean Depths design system
+├── SYSTEM_DESIGN.md             # Ink Navy design system
 ├── TASKS.md                     # implementation backlog
 ├── CHANGLOG.md                  # dated change history
 ├── detailedInfo.md              # this beginner guide
@@ -1586,64 +1598,84 @@ next-ai-lab/
 
 ## 14. UI, styling, and accessibility
 
-### The Ocean Depths theme
+### The Ink Navy dark theme
 
-All colors are CSS custom properties in `app/globals.css`:
+All colors are CSS custom properties in `app/globals.css`. The palette is
+dark-only and is checked by `lib/design-tokens.spec.mts`:
 
 ```css
 :root {
-  --canvas: #f1faee;
-  --surface: #ffffff;
-  --surface-accent: #a8dadc;
-  --text: #1a2332;
-  --text-muted: #43515e;
-  --border: #d7e4e2;
-  --primary: #1a2332;
-  --primary-hover: #243246;
-  --accent: #2d8b8b;
-  --accent-text: #1f6666;
-  --focus: #2d8b8b;
-  --danger: #b91c1c;
-  --success: #15803d;
-  --warning: #b45309;
+  color-scheme: dark;
+  --canvas: #0b0f14;
+  --surface: #11171e;
+  --surface-raised: #18202a;
+  --surface-hover: #1a222c;
+  --surface-sunken: #0e141a;
+  --text: #e6edf1;
+  --text-muted: #9aa7b0;
+  --border: #232d37;
+  --border-control: #6b7a86;
+  --border-strong: #8a9ba7;
+  --primary: #a8dadc;
+  --primary-hover: #bfe7e7;
+  --accent: #7fd1cd;
+  --accent-text: #9be0dc;
+  --focus: #a8dadc;
+  --success: #7fc79a;
+  --warning: #e3b36a;
+  --danger: #e58c8c;
+  --info: #8cb8e0;
 }
 ```
 
-Components use `var(--token)` instead of raw hex values. That keeps the palette
-consistent and makes a future theme change possible in one place.
+Components use `var(--token)` instead of raw hex values. Raw hex appears only
+inside the `:root` block; the design-token spec enforces that for both global
+CSS and the applications grid CSS. The retired `--surface-accent` token is
+gone.
+
+The root tokens also define the type scale, 8/12/16px radii, the overlay shadow,
+120ms/150ms motion, and layout sizes such as the 64px navbar, 44px controls,
+40px applications search, 44px grid header, 48px rows, 72rem content, 24rem
+auth column, and 28rem drawer.
 
 ### Styling approach
 
 - Tailwind CSS v4 is imported at the top of `globals.css`.
 - Most of this app's layout and component styling is written as semantic classes
-  in `globals.css` (for example `.workspace-shell`, `.summary-card`,
-  `.auth-form`).
-- `better-ui` rules govern spacing, radii, icon strokes, and motion.
-- `SYSTEM_DESIGN.md` is the written standard: 4px spacing scale, 8px control
-  radius, 12px card radius, 44px touch targets, WCAG AA contrast.
+  in `globals.css` (for example `.workspace-header`, `.summary-grid`,
+  `.auth-form`). The applications grid and drawer add scoped styles in
+  `components/applications/applications-grid.css`.
+- `SYSTEM_DESIGN.md` is the written standard: 4px spacing base, 8px control
+  radius, 12px card radius, 16px overlay radius, 44px touch targets, and WCAG AA
+  contrast.
+- There is no sidebar, no light mode, and no Lottie asset. Primary navigation is
+  a sticky top bar with a text wordmark, account panel, and mobile menu.
 
 ### Icons and charts
 
-- **Lucide React** is the only icon library. Icons are usually 20px with a 2px
-  absolute stroke and `aria-hidden="true"` when a visible label already names the
-  thing.
-- **Recharts** is the only chart library. The trend chart is a Client Component
-  and includes a visible legend, a hidden data table, and an empty-window
-  message.
+- **Lucide React** is the only icon library. Navigation icons are 18px, buttons
+  and account controls are 16px, inline metadata is 14px, and empty states are
+  20px, all with a 1.75px absolute stroke and `aria-hidden="true"` when a visible
+  label already names the thing.
+- **Recharts** is the only chart library. The "Application activity" chart is a
+  Client Component with solid/dashed/dotted accent/danger/warning series, a
+  pattern-matching legend, a hidden data table, and an empty-window message.
 
 ### Accessibility
 
-- Skip link to `#workspace-content`.
-- Semantic landmarks: `<aside>`, `<nav>`, `<main>`, `<header>`.
-- One `<h1>` per page, supplied by the workspace shell.
-- Visible `:focus-visible` outlines.
+- Skip link to `#workspace-content`, with scroll padding below the sticky bar.
+- Semantic landmarks: `<header>`, `<nav>`, `<main>`; auth pages use `<main>`.
+- One `<h1>` per page, supplied by the auth shell or workspace shell.
+- Visible `:focus-visible` outlines on controls, links, grid cells, and the skip
+  link.
 - Status meaning never depends on color alone.
-- `prefers-reduced-motion` disables sidebar transitions, press scales, and Lottie
-  motion.
+- `prefers-reduced-motion` removes underline scaling, disclosure motion, press
+  scales, and drawer animation.
 - Forms have persistent labels, `aria-invalid`, and `aria-describedby` error
   links.
-- The sidebar's collapsed labels use screen-reader-only text plus visible
-  flyouts on hover/focus, not `display: none`.
+- The mobile menu and account panel close on outside press and Escape; Escape
+  returns focus to the trigger. Navigation uses logical inline properties for
+  RTL.
 
 ---
 
@@ -1662,6 +1694,7 @@ lib/auth.spec.mts
 lib/auth/email.spec.mts
 lib/applications.spec.mts
 lib/navigation.spec.mts
+lib/design-tokens.spec.mts
 lib/db/migrations.spec.mts
 lib/validators/applications.spec.mts
 ```
@@ -1673,6 +1706,7 @@ What they cover:
 - summary math, stale boundary, response rate
 - 12-week trend buckets, boundaries, exclusions, empty input
 - navigation records and unknown-path fallback
+- palette values, token presence, contrast, dark scheme, and raw-hex isolation
 - migration index definitions
 - Zod schemas and future-date rejection
 
