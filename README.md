@@ -9,12 +9,13 @@ The project is also a learning environment for modern web development and struct
 - **Email/password authentication** — Signup, email verification, sign-in, sessions, and route guards.
 - **Applications tracker** — Create, edit, delete, search, and sort job applications.
 - **Dashboard** — Summary metrics and a 12-week application activity chart.
-- **Sticky top navigation** — Dashboard and Applications links, an account menu, and a mobile menu.
+- **Profile personal details** — View and edit your name, headline, location, website, and LinkedIn, with a read-only verified email; reachable from the account menu.
+- **Sticky top navigation** — Dashboard and Applications links, an account menu with Profile and sign-out, and a mobile menu.
 - **Responsive design** — Layouts designed for desktop and mobile, including keyboard, RTL, and reduced-motion support.
 - **Ink Navy theme** — A dark-only visual system with Plus Jakarta Sans, seafoam actions, and Lucide icons.
 - **AI-assisted development** — Documented requirements, architecture, coding rules, and task tracking.
 
-> **Current status:** Better Auth, MongoDB persistence, and the applications tracker are implemented. Remaining product work is tracked in `TASKS.md`.
+> **Current status:** Better Auth, MongoDB persistence, the applications tracker, and the Profile personal-details section are implemented. Remaining product work is tracked in `TASKS.md`.
 
 ## Tech Stack
 
@@ -86,7 +87,8 @@ Development, test, preview, and production each use an environment-suffixed
 database: `jobflow_dev`, `jobflow_test`, `jobflow_preview`, and `jobflow_prod`.
 Development, test, and preview share the M0 development cluster; production uses a
 separate M10-or-higher cluster in `ap-south-1`. Run `npm run migrate:up` after
-configuring a new database to create the six collections and their indexes.
+configuring a new database to create the six domain collections and their indexes
+(seven collections including `migrate-mongo`'s `changelog`).
 
 Start the development server:
 
@@ -102,12 +104,18 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 npm run dev        # Start the development server
 npm run build      # Create a production build
 npm run start      # Start the production server
-npm test           # Run the Node test suite
+npm test           # Run the fast unit test suite
+npm run test:integration # Run Atlas-backed integration tests against jobflow_test
 npm run lint       # Run ESLint
 npm run db:check   # Verify the MongoDB connection from .env files
 npm run migrate:up # Apply pending index migrations
 npm run migrate:down # Roll back the last migration
 ```
+
+The integration suite reads `.env.local`, connects to the dedicated `jobflow_test`
+database, creates a uniquely named profiles collection, and drops it afterwards. It
+skips when `MONGODB_URI` is missing. Run both suites before shipping a change that
+touches persistence.
 
 Check `package.json` for the commands configured in the current project.
 
@@ -116,9 +124,11 @@ Check `package.json` for the commands configured in the current project.
 ```text
 JobFlowAI/
 ├── app/                    # Next.js App Router routes, layouts, and global styles
-├── components/             # Reusable auth, dashboard, and workspace UI
+├── components/             # Reusable auth, dashboard, profile, and workspace UI
 ├── lib/                    # Shared helpers
 │   ├── db/                 # Cached MongoClient, database accessors, stored types
+│   ├── integration/        # Atlas-backed integration tests
+│   ├── repositories/       # Server-only, owner-scoped collection access
 │   └── validators/         # Server-side input guards
 ├── migrations/             # migrate-mongo index migrations
 ├── scripts/                # Operational checks such as db:check
@@ -171,6 +181,7 @@ The current implementation includes:
 - Password visibility controls and a disabled Google sign-in option
 - A centered dark auth column with responsive form controls
 - A sticky top navigation bar with account and mobile menus
+- A profile summary and Personal details form, reached from the account menu
 - Dashboard metrics, status breakdown, and a 12-week activity chart
 - An applications grid with search, sorting, row editing, and a create/edit drawer
 - Keyboard focus, RTL, reduced-motion, and 200% zoom accommodations
@@ -183,7 +194,7 @@ Future development is tracked in `TASKS.md` and governed by `PRD.md`.
 
 Potential improvements include:
 
-- Profile, resume, and job-preference management
+- Professional details, resume, and job-preference management
 - Production rate limiting, monitoring, and a shared limiter store
 - Account security and account deletion
 - Automated component and integration tests

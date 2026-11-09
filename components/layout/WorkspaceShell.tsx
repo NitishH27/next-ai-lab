@@ -15,12 +15,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { findWorkspacePage, workspacePages } from "@/lib/navigation";
+import { getInitials } from "@/lib/profile";
 import { authClient } from "@/lib/auth/client";
 
 const navIcons: Record<string, LucideIcon> = {
   "/dashboard": LayoutDashboard,
   "/applications": Briefcase,
-  "/profile": CircleUserRound,
 };
 
 type WorkspaceShellProps = {
@@ -33,20 +33,6 @@ type WorkspaceShellProps = {
     };
   } | null;
 };
-
-function getInitials(label: string) {
-  const parts = label.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return "A";
-  }
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
 
 export default function WorkspaceShell({ children, session }: WorkspaceShellProps) {
   const pathname = usePathname();
@@ -159,26 +145,28 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
   }
 
   function renderNavLinks(linkClassName: string, onActivate?: () => void) {
-    return workspacePages.map((item) => {
-      const Icon = navIcons[item.href];
-      const isCurrent = pathname === item.href;
+    return workspacePages
+      .filter((item) => item.inPrimaryNav !== false)
+      .map((item) => {
+        const Icon = navIcons[item.href];
+        const isCurrent = pathname === item.href;
 
-      return (
-        <li key={item.href}>
-          <Link
-            className={`${linkClassName}${isCurrent ? " is-current" : ""}`}
-            href={item.href}
-            aria-current={isCurrent ? "page" : undefined}
-            onClick={onActivate}
-          >
-            {Icon ? (
-              <Icon size={18} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
-            ) : null}
-            <span>{item.label}</span>
-          </Link>
-        </li>
-      );
-    });
+        return (
+          <li key={item.href}>
+            <Link
+              className={`${linkClassName}${isCurrent ? " is-current" : ""}`}
+              href={item.href}
+              aria-current={isCurrent ? "page" : undefined}
+              onClick={onActivate}
+            >
+              {Icon ? (
+                <Icon size={18} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+              ) : null}
+              <span>{item.label}</span>
+            </Link>
+          </li>
+        );
+      });
   }
 
   return (
@@ -262,6 +250,19 @@ export default function WorkspaceShell({ children, session }: WorkspaceShellProp
                   </div>
                 </div>
                 <div className="workspace-account-rule" aria-hidden="true" />
+                <Link
+                  className="workspace-account-action"
+                  href="/profile"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  <CircleUserRound
+                    size={16}
+                    strokeWidth={1.75}
+                    absoluteStrokeWidth
+                    aria-hidden="true"
+                  />
+                  <span>Profile</span>
+                </Link>
                 <button
                   type="button"
                   className="workspace-account-signout"

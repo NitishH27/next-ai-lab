@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { betterAuth } from 'better-auth';
+import { nextCookies } from 'better-auth/next-js';
 import { mongodbAdapter } from '@better-auth/mongo-adapter';
 import { sendVerificationEmail } from '@/lib/auth/email';
 import { getDb } from '@/lib/db/connect';
@@ -28,7 +29,8 @@ const sharedAuthOptions = {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
   },
-} as const;
+  plugins: [nextCookies()],
+};
 
 const getAuth = async () => {
   if (process.env.NEXT_PHASE === 'phase-production-build') {

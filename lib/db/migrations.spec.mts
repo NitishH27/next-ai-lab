@@ -66,6 +66,7 @@ test("migrations create the PRD-005 index set", async () => {
     ["accounts", "accounts_userId"],
     ["accounts", "accounts_provider_account_unique"],
     ["verification", "verification_expiresAt_ttl"],
+    ["profiles", "profiles_userId_unique"],
   ];
 
   for (const [collection, index] of expectedIndexes) {
@@ -95,4 +96,11 @@ test("migrations create the PRD-005 index set", async () => {
       },
     },
   );
+  assert.deepEqual(db.indexes.get("profiles")?.get("profiles_userId_unique"), {
+    keys: { userId: 1 },
+    options: {
+      unique: true,
+      name: "profiles_userId_unique",
+    },
+  });
 });

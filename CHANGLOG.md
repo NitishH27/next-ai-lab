@@ -2,6 +2,39 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-11-09 — Implement PRD-009 profile personal details
+
+- Added `/profile` with a full-width summary card and a Personal details form for full name, read-only verified email, headline, location, website, and LinkedIn, plus loading and retryable error states. Profile is reached from the top-bar account panel only; the primary navigation stays Dashboard and Applications, and the `/profile` navigation record is metadata-only via `inPrimaryNav: false`.
+- Added the `profiles` collection, `DbProfile`, `getProfilesCollection()`, and the immutable `profiles_userId_unique` migration. Saves lazily upsert one owner-scoped document with `$setOnInsert` for `userId`/`createdAt`, retry once on duplicate-key `11000`, and never create a document on read.
+- Added shared profile helpers, strict personal-details validation, the server-only repository, and a testable save orchestrator. The Server Action saves profile fields first, updates the canonical Better Auth name only when trimmed input changed, returns the discriminated `saved`/`partial`/`invalid`/`unauthorized`/`error` result, and relies on the new `nextCookies()` plugin to persist the refreshed cached session cookie.
+- Added strictly parsed website and LinkedIn URLs, `Include https://` hints, new-tab links with full visible URLs, field-linked errors, first-invalid focus, a `role="status"` save message, a single partial-success `role="alert"`, and `aria-busy` submit handling.
+- Moved the shell's `getInitials` into `lib/profile.ts`, added the keyboard-reachable account-panel Profile action, and updated the top-navigation and mobile-menu filters so Profile is not a primary tab.
+- Added unit coverage for helpers, validators, repository behavior, save orchestration, navigation, and the migration, plus a separate `test:integration` suite that runs against Atlas `jobflow_test` with a unique collection and cleanup. Updated `PRD.md`, `ARCHITECTURE.md`, `README.md`, `SYSTEM_DESIGN.md`, and `TASKS.md`.
+- Validation: `npm test` (64 tests), `npm run test:integration` (2 tests), `npm run lint` (0 errors; 12 pre-existing migration warnings), and `npm run build` pass. Manual browser keyboard, 200% zoom, reduced-motion, and 20rem/48rem responsive checks were not performed because no browser tooling was used; the CSS and DOM were reviewed against the PRD rules instead.
+
+## 2026-11-09 — Sharpen PRD-009 after grilling
+
+- Resolved the profile name-update path: Better Auth `nextCookies()` with the existing `session.cookieCache`, profile-first writes, and partial success when only the name update fails.
+- Locked lazy creation for name-only saves (null optional fields), the unique-index race retry, trimmed dirty checks that skip an unchanged name, using server-normalized values after save, the shared `getInitials` helper, UTC `MMM YYYY` member since, strict URL parsing with new-tab links, and a discriminated action result.
+- Added the separate `test:integration` script requirement and made the email-verification warning testable through a pure helper.
+- Amended PRD-005 in place: `profiles` is the sixth domain collection, seven collections including `changelog`, with the profile schema, unique index, setup checks, and acceptance criteria updated.
+- Marked PRD-009 Ready for Code and refreshed its task summary.
+- Validation: documentation-only change; no app code, routes, dependencies, or runtime behavior changed, so tests, lint, and build were not re-run.
+
+## 2026-11-09 — Add PRD-009 for profile personal details
+
+- Added PRD-009 to `PRD.md`: a focused first slice of the Profile section where signed-in users view and edit their full name, headline, location, website, and LinkedIn, with email shown read-only and verified.
+- Specified the `/profile` route, summary card, personal-details form, lazy profile creation, owner-only server action, `profiles` collection and unique `userId` index, validation and URL rules, loading/error/success states, responsive and accessibility requirements, tests, and documentation updates.
+- Linked PRD-009 to PRD-007 and PRD-007.1, added an implementation-phasing note to PRD-007.1, and updated `TASKS.md` so PRD-009 is the first slice and PRD-007.1 keeps the remaining professional, preference, and delete-all phases.
+- Validation: documentation-only change; no app code, routes, dependencies, or runtime behavior changed, so tests, lint, and build were not re-run.
+
+## 2026-11-08 — Implement the PRD-008 dark top-nav revamp
+
+- Implemented PRD-008.1–008.5: dark Ink Navy tokens, Plus Jakarta Sans, centered auth, sticky 64px top navigation, dashboard summary/chart, applications grid/drawer, plain empty and loading states, and the `/profile`-ready icon mapping.
+- Removed the sidebar and its state/styles, `AuthIllustration`, `lottie-react`, the Lottie JSON files, and the logo JPEGs after reference checks. Kept the grid header at 44px and rows at 48px with inset hairlines so borders do not change layout height.
+- Updated `SYSTEM_DESIGN.md`, `PRD.md`, `ARCHITECTURE.md`, `README.md`, `detailedInfo.md`, and `TASKS.md`, and added `lib/design-tokens.spec.mts` to `npm test`.
+- Validation: `npm test` (38 tests), `npm run lint` (0 errors; 12 pre-existing migration warnings), and `npm run build` pass. Chrome computed QA at 1280×800, 1024×768, 768×900, 375×812, 320×568, and 640×400 (200% zoom) confirmed the 64px navbar, 44px auth controls, 40px search, 44px add action, 44px grid header, 48px rows, 448px drawer, RTL account panel, Escape/focus return, reduced motion, patterned chart series, and no horizontal overflow; empty dashboard/applications states were verified.
+
 ## 2026-11-05 — Upgrade PRD-008 and the design system to a dark top-nav revamp
 
 - Replaced the initial Quiet Paper draft in PRD-008 with a dark-only Ink Navy system: `canvas #0B0F14`, three surface levels, seafoam primary actions, teal accent, cool-grey text, Plus Jakarta Sans, 8/12/16px radii, 44px controls, a 40px applications search exception, 48px grid rows, a 64px top navbar, 72rem content, 24rem auth, and 28rem drawer.

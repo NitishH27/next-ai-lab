@@ -141,7 +141,7 @@
   --ag-border-radius: var(--radius-card);
   --ag-wrapper-border-radius: var(--radius-card);
   --ag-row-height: var(--row-height);
-  --ag-header-height: var(--grid-header-height);
+  --ag-header-height: calc(var(--grid-header-height) - 1px);
   --ag-cell-horizontal-padding: 20px;
   --ag-icon-size: 14px;
   --ag-header-column-separator-display: none;

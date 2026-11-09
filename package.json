@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:check": "node scripts/check-db.mjs",
-    "test": "node --test lib/auth.spec.mts lib/auth/email.spec.mts lib/applications.spec.mts lib/navigation.spec.mts lib/design-tokens.spec.mts lib/db/migrations.spec.mts lib/validators/applications.spec.mts",
+    "test": "node --test lib/auth.spec.mts lib/auth/email.spec.mts lib/applications.spec.mts lib/navigation.spec.mts lib/design-tokens.spec.mts lib/db/migrations.spec.mts lib/validators/applications.spec.mts lib/profile.spec.mts lib/validators/profile.spec.mts lib/repositories/profiles-core.spec.mts lib/profile-save.spec.mts",
+    "test:integration": "node --test lib/integration/profiles.integration.mts",
     "migrate:up": "migrate-mongo up",
     "migrate:down": "migrate-mongo down"
   },

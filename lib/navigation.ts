@@ -3,6 +3,8 @@ export type WorkspacePage = {
   label: string;
   title: string;
   description?: string;
+  /** Set false for routes reachable outside the primary nav, such as the account menu. */
+  inPrimaryNav?: boolean;
 };
 
 export const workspacePages: readonly WorkspacePage[] = [
@@ -16,6 +18,13 @@ export const workspacePages: readonly WorkspacePage[] = [
     label: "Applications",
     title: "Applications",
     description: "Track and manage your job applications.",
+  },
+  {
+    href: "/profile",
+    label: "Profile",
+    title: "Profile",
+    description: "Manage your personal details.",
+    inPrimaryNav: false,
   },
 ];
 

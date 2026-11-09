@@ -49,6 +49,17 @@ export type DbVerification = {
   updatedAt: Date;
 };
 
+export type DbProfile = {
+  _id: ObjectId;
+  userId: ObjectId;
+  headline: string | null;
+  location: string | null;
+  websiteUrl: string | null;
+  linkedinUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type DbApplication = {
   _id: ObjectId;
   userId: ObjectId;

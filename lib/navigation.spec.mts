@@ -21,6 +21,17 @@ test("applications record supplies the page label, title, and description", () =
   assert.equal(getWorkspaceTitle("/applications"), "Applications");
 });
 
+test("profile record supplies the page label, title, and description outside the primary nav", () => {
+  assert.deepEqual(findWorkspacePage("/profile"), {
+    href: "/profile",
+    label: "Profile",
+    title: "Profile",
+    description: "Manage your personal details.",
+    inPrimaryNav: false,
+  });
+  assert.equal(getWorkspaceTitle("/profile"), "Profile");
+});
+
 test("unknown and nested workspace paths fall back to JobFlow", () => {
   assert.equal(findWorkspacePage("/unknown"), undefined);
   assert.equal(findWorkspacePage("/dashboard/applications"), undefined);
