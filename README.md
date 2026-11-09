@@ -71,17 +71,37 @@ cp .env.example .env.local
 | `MONGODB_DB` | Deployed | Database name. Local default is `jobflow_dev`; use `jobflow_test`, `jobflow_preview`, or `jobflow_prod` per environment |
 | `BETTER_AUTH_SECRET` | Yes | Long random secret used by Better Auth |
 | `BETTER_AUTH_URL` | Yes | Base URL of the app, for example `http://localhost:3000` |
-| `RESEND_API_KEY` | Production | Resend key for verification emails. Locally, omit it and the verification link is printed to the dev server console |
-| `EMAIL_FROM` | No | Sender for verification emails; defaults to `JobFlowAI <onboarding@resend.dev>`. Resend requires a verified domain for real recipients |
+| `RESEND_API_KEY` | Production | Resend key for the verification, welcome, and new sign-in alert emails. Locally, omit it and the verification link is printed to the dev server console |
+| `EMAIL_FROM` | No | Sender for transactional emails; defaults to `JobFlowAI <onboarding@resend.dev>`. Resend requires a verified domain for real recipients |
+| `EMAIL_REPLY_TO` | Production | Reply address on all three transactional emails. Optional locally; required in production when `RESEND_API_KEY` is set |
 
 Get the host from **Database → Connect → Drivers**. Credentials are passed to the
 driver separately from the URI, so special characters in the password do not need
 URL-encoding. `.env.local` is gitignored; never commit real credentials. The server
 fails fast with a clear error when a required variable is missing.
 
-Verification emails go through Resend. Without `RESEND_API_KEY`, local sign-up logs
-the verification URL to the dev server console instead of emailing it; open that
-link to activate the account before signing in.
+Transactional emails go through Resend and use one shared, self-contained HTML
+layout with a plain-text alternative. The three messages are:
+
+- **Verification** — sent on sign-up. The link finishes account setup and expires
+  in one hour. Without `RESEND_API_KEY`, local sign-up logs the verification URL
+  to the dev server console instead of emailing it; open that link to activate
+  the account before signing in. In production, a missing key fails the
+  verification send loudly because the message is the only way to finish sign-up.
+- **Welcome** — sent once when email verification completes, with a link to the
+  dashboard. A verification token is a one-time transition, so there is no
+  welcome-sent flag, collection, or delivery ledger. First sign-in does not send
+  another welcome.
+- **New sign-in alert** — sent after a successful sign-in only when the user
+  already has another active session. The first session after sign-up or
+  verification stays quiet, and session refreshes do not send an alert. The
+  alert shows the account email, a UTC timestamp, and a short browser/OS label;
+  it never includes the IP address, location, session token, or full user agent.
+
+Welcome and alert delivery is best effort: failures are logged and swallowed so
+they never fail verification or sign-in. No retry queue, outbox, delivery
+webhook, or bounce handling is added. Use a Resend-verified domain for
+`EMAIL_FROM` in production; `onboarding@resend.dev` is for development only.
 
 Development, test, preview, and production each use an environment-suffixed
 database: `jobflow_dev`, `jobflow_test`, `jobflow_preview`, and `jobflow_prod`.
@@ -176,6 +196,7 @@ JobFlowAI follows a documentation-first workflow for AI-assisted development.
 The current implementation includes:
 
 - Better Auth email/password signup, verification, sign-in, and sign-out
+- Branded verification, welcome, and new sign-in alert emails through Resend
 - MongoDB-backed users, sessions, and applications
 - Server-side workspace guards and signed-in route protection
 - Password visibility controls and a disabled Google sign-in option

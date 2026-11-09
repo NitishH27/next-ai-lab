@@ -1,16 +1,31 @@
 import 'server-only';
 
-import { betterAuth } from 'better-auth';
+import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { mongodbAdapter } from '@better-auth/mongo-adapter';
-import { sendVerificationEmail } from '@/lib/auth/email';
+import {
+  sendSignInAlertEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from '@/lib/auth/email';
+import { shouldSendSignInAlert } from '@/lib/auth/email-templates';
 import { getDb } from '@/lib/db/connect';
 import { getMongoClient } from '@/lib/db/client';
 import { env } from '@/lib/env';
 
+function logEmailFailure(message: string, error: unknown) {
+  if (error && typeof error === 'object' && 'status' in error && typeof error.status === 'number') {
+    console.error(`[auth] ${message} (status ${error.status})`);
+    return;
+  }
+
+  const detail = error instanceof Error ? error.message : 'Unknown error';
+  console.error(`[auth] ${message} ${detail}`);
+}
+
 // Keep Better Auth's collection names aligned with PRD-005. The verification
 // collection is intentionally singular; the others are plural.
-const sharedAuthOptions = {
+const sharedAuthOptions: BetterAuthOptions = {
   user: { modelName: 'users' },
   account: { modelName: 'accounts' },
   verification: { modelName: 'verification' },
@@ -23,11 +38,56 @@ const sharedAuthOptions = {
     autoSignInAfterVerification: false,
     expiresIn: 60 * 60,
     sendVerificationEmail,
+    afterEmailVerification: async (user) => {
+      try {
+        await sendWelcomeEmail({
+          user,
+          appUrl: env.BETTER_AUTH_URL,
+        });
+      } catch (error) {
+        logEmailFailure('Welcome email failed.', error);
+      }
+    },
   },
   session: {
     modelName: 'sessions',
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session, context) => {
+          try {
+            if (!context) {
+              return;
+            }
+
+            const activeSessions = await context.context.internalAdapter.listSessions(
+              session.userId,
+              { onlyActiveSessions: true },
+            );
+
+            if (!shouldSendSignInAlert(activeSessions.length)) {
+              return;
+            }
+
+            const user = await context.context.internalAdapter.findUserById(session.userId);
+            if (!user) {
+              return;
+            }
+
+            await sendSignInAlertEmail({
+              user,
+              signedInAt: session.createdAt,
+              userAgent: session.userAgent,
+            });
+          } catch (error) {
+            logEmailFailure('Sign-in alert email failed.', error);
+          }
+        },
+      },
+    },
   },
   plugins: [nextCookies()],
 };

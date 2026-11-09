@@ -9,6 +9,9 @@ let cachedEnv: {
   MONGODB_PASSWORD?: string;
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+  EMAIL_REPLY_TO?: string;
   NODE_ENV: string;
 } | null = null;
 
@@ -70,6 +73,9 @@ function getEnv() {
     MONGODB_PASSWORD: mongoPassword,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || '',
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+    RESEND_API_KEY: process.env.RESEND_API_KEY?.trim() || undefined,
+    EMAIL_FROM: process.env.EMAIL_FROM?.trim() || undefined,
+    EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO?.trim() || undefined,
     NODE_ENV: process.env.NODE_ENV || 'development',
   };
 

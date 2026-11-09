@@ -236,6 +236,15 @@ Primary navigation lives in a sticky top navigation bar. There is no sidebar, co
 - The empty and loading states are plain, without a dashed border or circular icon chip. Use a single 20px `text-muted` icon, a 14px `text-muted` message, and the primary add action where appropriate. Keep skeleton rows aligned to the 48px row rhythm.
 - The application drawer uses `surface-raised`, a 1px `border`, `--shadow-overlay`, a 16px radius on the inline edge, 24px padding, and a 16px radius only for the overlay surface. The title is 20px/600, labels are 13px/500, inputs are 44px, and the footer actions are 44px. Keep the existing focus trap, validation, keyboard behavior, and field layout.
 
+### Transactional email
+
+- Transactional emails use an email-only surface, not a light app theme. The outer canvas and header/footer band are Ink Navy `#0B0F14`; the reading card is `#F7FAFB` with a 1px `#DCE5EA` border and a 12px radius. Do not change app tokens for email.
+- Use the email-safe system stack (`-apple-system`, `BlinkMacSystemFont`, `Segoe UI`, `Roboto`, `Helvetica`, `Arial`, sans-serif), not Plus Jakarta Sans. Body text is 16px at 1.6 line height, headings are 24px/600, small text is 13px, and the footer is 12px.
+- Keep the header to the text `JobFlow` wordmark at 18px/600 with a 6px `#7FD1CD` accent dot. Keep the footer to one quiet line.
+- The primary CTA is a 44px table-cell button with an 8px radius, `#A8DADC` background, and `#0B0F14` text. It becomes full width below 480px and is always followed by a wrapping, underlined fallback URL in `#0F6B66`.
+- Text pairs are `#11171E` on `#F7FAFB`, `#52606B` on `#F7FAFB`, `#0F6B66` on `#F7FAFB`, `#0B0F14` on `#A8DADC`, and `#9AA7B0` on `#0B0F14`. Do not rely on color alone.
+- Keep emails self-contained: no images, web fonts, SVG, scripts, forms, external stylesheets, CSS variables, gradients, glows, tracking pixels, or UTM parameters. Declare `color-scheme: light only`; do not build a dark-mode variant. Include a hidden preheader, one `h1`, and a matching plain-text body with the same information and URL.
+
 ### States and feedback
 
 - Design loading, empty, error, and success states for every data surface. Explain what happened and provide a useful next step where one exists.

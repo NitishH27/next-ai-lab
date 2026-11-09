@@ -2,6 +2,24 @@
 
 This file records repository changes made by Codex, with a dated title and a brief summary for each prompt that changes the project.
 
+## 2026-11-09 — Implement PRD-010 transactional signup and sign-in emails
+
+- Added `lib/auth/email-templates.ts` with one pure, table-based `renderEmailLayout`, an email-only Ink Navy/seafoam palette, hidden preheaders, matching plain-text bodies, HTML escaping, safe HTTP(S) URL validation, first-name greeting, UTC sign-in time, and short browser/OS labels.
+- Replaced the bare verification message with the shared shell and added the welcome and new sign-in alert templates. The welcome links to `/dashboard`; the alert lists the account email, UTC time, and device label with no CTA, IP address, location, token, or full user agent.
+- Extended `lib/auth/email.ts` with `sendWelcomeEmail` and `sendSignInAlertEmail`, one Resend request helper, optional `reply_to`, a 10-second abort timeout, bounded non-2xx details, and explicit production checks for `EMAIL_REPLY_TO` when sending is enabled. Verification still logs its link in development and throws in production when the key is missing.
+- Wired `emailVerification.afterEmailVerification` to send the welcome once and `databaseHooks.session.create.after` to send the alert only when the user already has more than one active session. Both catch and log sanitized failures so verification and sign-in still succeed.
+- Added `RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_REPLY_TO` to `lib/env.ts` and `.env.example`, and documented the three emails, trigger rules, first-session suppression, failure policy, and email-only light surface in `README.md`, `ARCHITECTURE.md`, and `SYSTEM_DESIGN.md`.
+- Extended `lib/auth/email.spec.mts` to 23 tests covering all templates, the shared shell, email-only WCAG AA pairs, escaping, URL rejection, time/device helpers, the first-session rule, the stubbed Resend payload, and non-2xx handling.
+- Validation: `npm test` (84 tests), `npm run lint` (0 errors; 12 pre-existing migration warnings), and `npm run build` pass.
+
+## 2026-11-09 — Add PRD-010 transactional signup and sign-in emails
+
+- Added PRD-010 to `PRD.md`: three transactional emails (verification, welcome, and new sign-in alert) built as local TypeScript HTML/text templates with one shared layout and sent through the existing Resend transport.
+- Locked the email design: a light reading card inside an Ink Navy header/footer band, seafoam 44px CTA, system font stack, 600px width, hidden preheader, plain-text alternative, WCAG AA text pairs, and no images, web fonts, scripts, tracking, or hosted templates. The light card is email-only and does not change the app's dark tokens.
+- Locked delivery: welcome on verification completion rather than first sign-in, so no delivery ledger is needed; sign-in alert only after the first active session; best-effort welcome/alert failures; verification failures stay visible. No IP, location, token, or full user agent in the alert.
+- Amended PRD-004 and PRD-005, and added PRD-010.1–010.3 to `TASKS.md` under Ready for Code for the template system, triggers, and tests/docs.
+- Validation: documentation-only change; no app code, templates, routes, dependencies, or runtime behavior changed, so tests, lint, and build were not re-run.
+
 ## 2026-11-09 — Implement PRD-009 profile personal details
 
 - Added `/profile` with a full-width summary card and a Personal details form for full name, read-only verified email, headline, location, website, and LinkedIn, plus loading and retryable error states. Profile is reached from the top-bar account panel only; the primary navigation stays Dashboard and Applications, and the `/profile` navigation record is metadata-only via `inPrimaryNav: false`.
